@@ -5,9 +5,24 @@ Modern, güvenli ve performanslı Fail2Ban yönetim arayüzü. Bootstrap 5 dark 
 ![PHP Version](https://img.shields.io/badge/PHP-%3E%3D7.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+## 📑 İçindekiler
+
+- [Özellikler](#-özellikler)
+- [Hızlı Başlangıç](#-hızlı-başlangıç)
+- [Gereksinimler](#-gereksinimler)
+- [Kurulum](#-kurulum)
+- [Konfigürasyon](#-konfigürasyon)
+- [Kullanım](#-kullanım)
+- [Çoklu Sunucu Kurulumu](#-çoklu-sunucu-kurulumu)
+- [Güvenlik](#-güvenlik)
+- [Performans](#-performans)
+- [Sorun Giderme](#-sorun-giderme)
+- [Bakım](#-bakım)
+
 ## ✨ Özellikler
 
 ### Temel Özellikler
+
 - 🎨 **Modern UI**: Bootstrap 5.3 dark mode, glass-morphism tasarım
 - 🔒 **Güvenlik**: CSRF koruması, XSS koruması, bcrypt password hashing
 - ⚡ **Performans**: APCu/File hybrid caching, DNS lookup devre dışı
@@ -15,6 +30,7 @@ Modern, güvenli ve performanslı Fail2Ban yönetim arayüzü. Bootstrap 5 dark 
 - 📊 **Dashboard**: Tüm jail'leri ve banned IP'leri tek ekranda görüntüle
 
 ### İleri Özellikler (Opsiyonel)
+
 - 🖥️ **Multi-Server**: Birden fazla bağımsız fail2ban sunucusunu merkezi MySQL ile yönet
 - 🌐 **Global Ban**: Bir IP'yi tüm sunucularda otomatik olarak banla
 - 📝 **Audit Log**: Tüm ban/unban işlemlerinin detaylı kaydı
@@ -49,19 +65,17 @@ sudo chmod 777 /var/run/fail2ban/fail2ban.sock
 # http://your-server/fail2ban/
 ```
 
-### Çoklu Sunucu Kurulumu
-
-Detaylı kurulum için [SETUP.md](SETUP.md) dosyasına bakın.
-
 ## 📋 Gereksinimler
 
 ### Zorunlu
+
 - PHP >= 7.2
 - fail2ban kurulu ve çalışıyor
 - Apache/Nginx web server
 - PHP exec() fonksiyonu aktif
 
 ### Opsiyonel
+
 - php-apcu (caching için)
 - php-mysql + MySQL (çoklu sunucu için)
 - composer (GeoIP için)
@@ -95,16 +109,22 @@ sudo chmod 660 /var/run/fail2ban/fail2ban.sock
 # $f2b['use_socket_check'] = false;
 ```
 
-### 3. Web Server
+### 3. Web Server Güvenlik (Opsiyonel)
 
-```bash
-# Apache için .htaccess (opsiyonel - IP kısıtlama)
+Apache `.htaccess` ile hassas dosyaları koru:
+
+```apache
 <Files ~ "^(config|engine|db|cache|csrf)\.inc\.php$">
     Require all denied
 </Files>
+
+# IP kısıtlaması (opsiyonel)
+<RequireAll>
+    Require ip 192.168.1.0/24
+</RequireAll>
 ```
 
-## 🔧 Konfigürasyon
+## ⚙️ Konfigürasyon
 
 ### Temel Ayarlar (config.inc.php)
 
@@ -112,56 +132,263 @@ sudo chmod 660 /var/run/fail2ban/fail2ban.sock
 // Environment (production'da mutlaka değiştir)
 $config['environment'] = 'production';
 
-// Güvenli şifre (hash oluştur: php -r "echo password_hash('pass', PASSWORD_DEFAULT);")
+// Application title
+$config['title'] = 'Fail2Ban Dashboard';
+
+// Güvenli şifre (hash oluştur)
+php -r "echo password_hash('your_password', PASSWORD_DEFAULT);"
+
 $login['native'] = array(
-    array('user' => 'admin', 'password_hash' => '$2y$10$...')
+    array(
+        'user' => 'admin',
+        'password_hash' => '$2y$10$...'  // Yukarıdaki komuttan çıkan hash
+    )
 );
 
 // Fail2ban ayarları
 $f2b['socket'] = '/var/run/fail2ban/fail2ban.sock';
 $f2b['use_socket_check'] = false;  // Socket erişim sorunu varsa false
 $f2b['usedns'] = false;            // Performans için false önerilir
+$f2b['noempt'] = true;             // Boş jail'leri gizle
+$f2b['jainfo'] = true;             // Jail bilgilerini göster
 ```
 
-### Çoklu Sunucu Ayarları
+### Tek Sunucu Modu (Default)
 
 ```php
-// Her sunucuda FARKLI olmalı
-$config['server_name'] = 'web-server-1';
-$config['server_ip'] = '192.168.1.10';
-
-// Merkezi database'i aktif et
-$config['use_central_db'] = true;
-
-$db_config = array(
-    'host' => 'mysql.example.com',
-    'database' => 'fail2ban_central',
-    'username' => 'fail2ban_user',
-    'password' => 'secure_password'
-);
+// Single server setup
+$config['server_name'] = 'my-server';
+$config['server_ip'] = '127.0.0.1';
+$config['use_central_db'] = false;  // Merkezi DB kullanma
 ```
 
 ## 📊 Kullanım
 
 ### Ban İşlemi
+
 1. Dashboard'dan "Manually Ban IP Address" bölümüne git
 2. Jail seç
 3. IP adresini gir
 4. "Ban IP" butonuna tıkla
 
 ### Unban İşlemi
+
 1. Banned IPs listesinden IP'yi bul
 2. "Unban" butonuna tıkla
 3. Onay ver
 
-### Global Ban (Çoklu Sunucu)
-1. Herhangi bir sunucudan IP'yi ban et
-2. `global_bans` tablosuna ekle
-3. Tüm sunucularda sync.php otomatik olarak bu IP'yi banlayacak
+### Refresh
 
-## 🔄 Senkronizasyon (Çoklu Sunucu)
+- Dashboard üst kısmındaki "Refresh" butonuna tıkla
+- Cache temizlenir ve güncel veriler çekilir
 
-### Manuel Sync
+---
+
+## 🖥️ Çoklu Sunucu Kurulumu
+
+Birden fazla bağımsız fail2ban sunucusunu merkezi bir MySQL veritabanı ile yönetin.
+
+### Mimari
+
+```
+┌─────────────────┐
+│   Web Server 1  │ sync.php (cron)
+│   fail2ban      │────┐
+└─────────────────┘    │
+                       │
+┌─────────────────┐    │    ┌──────────────────────┐
+│   Mail Server   │    ├───▶│  Central MySQL DB    │
+│   fail2ban      │────┤    │                      │◀──── Web Dashboard
+└─────────────────┘    │    │  - servers           │      (Tüm sunucular)
+                       │    │  - jails             │
+┌─────────────────┐    │    │  - banned_ips        │
+│   DB Server     │    │    │  - global_bans       │
+│   fail2ban      │────┘    │  - audit_log         │
+└─────────────────┘         └──────────────────────┘
+```
+
+### Özellikler
+
+✅ **Merkezi Ban Yönetimi**: Tüm sunuculardaki banları tek yerden görüntüle
+✅ **Global Ban List**: Bir IP'yi tüm sunucularda otomatik banla
+✅ **Audit Log**: Tüm ban/unban işlemlerini takip et
+✅ **İstatistikler**: Server bazlı veya global istatistikler
+✅ **Bağımsız Çalışma**: Her sunucu kendi fail2ban'ını bağımsız çalıştırır
+
+### 1. Merkezi MySQL Sunucusu Kurulumu
+
+```bash
+# MySQL'e root olarak giriş
+mysql -u root -p
+
+# Veritabanı ve kullanıcı oluştur
+CREATE DATABASE fail2ban_central CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'fail2ban_user'@'%' IDENTIFIED BY 'güçlü_bir_şifre';
+GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'%';
+FLUSH PRIVILEGES;
+EXIT;
+
+# Şema dosyasını import et
+mysql -u fail2ban_user -p fail2ban_central < database.sql
+```
+
+#### MySQL Uzaktan Erişim
+
+```bash
+# /etc/mysql/mysql.conf.d/mysqld.cnf düzenle
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# bind-address satırını değiştir:
+bind-address = 0.0.0.0
+
+# MySQL'i yeniden başlat
+sudo systemctl restart mysql
+
+# Firewall'da 3306 portunu aç
+sudo ufw allow 3306/tcp
+```
+
+### 2. Her Fail2Ban Sunucusunda Yapılacaklar
+
+#### Adım 1: Dosyaları Kopyala
+
+```bash
+# Web dizinine kopyala
+sudo cp -r fail2ban/ /var/www/html/fail2ban/
+sudo chown -R www-data:www-data /var/www/html/fail2ban/
+cd /var/www/html/fail2ban/
+```
+
+#### Adım 2: Config Ayarları
+
+```bash
+# Config dosyasını oluştur
+cp config.example.php config.inc.php
+nano config.inc.php
+```
+
+**ÖNEMLI:** Her sunucuda farklı `server_name` kullanın!
+
+```php
+// Server identification (HER SUNUCUDA FARKLI OLMALI)
+$config['server_name'] = 'web-server-1';  // web-server-1, mail-server-1, db-server-1 ...
+$config['server_ip'] = '192.168.1.10';    // Bu sunucunun IP'si
+
+// Merkezi database'i aktif et
+$config['use_central_db'] = true;
+
+// Database bağlantı bilgileri (TÜM SUNUCULARDA AYNI)
+$db_config = array(
+    'host' => '192.168.1.100',         // MySQL sunucusunun IP'si
+    'port' => 3306,
+    'database' => 'fail2ban_central',
+    'username' => 'fail2ban_user',
+    'password' => 'güçlü_bir_şifre',
+    'charset' => 'utf8mb4'
+);
+```
+
+**UYARI:**
+- `$db_config` değişkeni **mutlaka** `config.inc.php` içinde tanımlanmalı
+- `$config['use_central_db'] = false` ise sync.php çalışmaz (sadece local mod)
+- Her sunucunun `server_name`'i benzersiz (unique) olmalı
+
+#### Adım 3: PHP MySQL Extension
+
+```bash
+sudo apt-get install php-mysql
+sudo systemctl restart apache2  # veya php-fpm
+```
+
+#### Adım 4: Sync Testi
+
+```bash
+# Manuel sync testi
+php sync.php
+
+# Çıktıda hata olmamalı
+# Örnek çıktı:
+# [2025-01-15 10:30:00] Starting sync for server: web-server-1 (ID: 1)
+# [2025-01-15 10:30:01] Syncing local bans to database...
+# [2025-01-15 10:30:02] Sync completed successfully
+```
+
+#### Adım 5: Otomatik Sync (Cron)
+
+```bash
+# Crontab düzenle
+sudo crontab -e
+
+# Her 5 dakikada bir local bans'ları database'e sync et
+*/5 * * * * /usr/bin/php /var/www/html/fail2ban/sync.php >> /var/log/fail2ban_sync.log 2>&1
+
+# Her 10 dakikada bir global banları uygula
+*/10 * * * * /usr/bin/php /var/www/html/fail2ban/sync.php --apply-global >> /var/log/fail2ban_sync.log 2>&1
+```
+
+### 3. Kullanım Senaryoları
+
+#### Senaryo 1: Sadece Görüntüleme
+
+Merkezi veritabanını sadece raporlama için kullan. Her sunucu kendi fail2ban'ını yönetir, sadece veriler database'e aktarılır.
+
+```php
+$config['use_central_db'] = true;
+$config['db_mode'] = 'readonly';  // Sadece okuma
+```
+
+#### Senaryo 2: Global Ban Yönetimi
+
+Bir IP'yi tüm sunucularda banlamak için:
+
+**SQL ile manuel:**
+```sql
+INSERT INTO global_bans (ip_address, reason, banned_by, permanent)
+VALUES ('123.45.67.89', 'Brute force attack', 'admin', 0);
+```
+
+**PHP ile (db.inc.php fonksiyonu kullanarak):**
+```php
+db_add_global_ban('123.45.67.89', 'Brute force attack', 'admin', false);
+```
+
+Sync script otomatik olarak bu IP'yi tüm sunucularda banlayacak.
+
+#### Senaryo 3: Merkezi Dashboard
+
+Tüm sunucuların verilerini database'den çek ve merkezi dashboard oluştur:
+
+```php
+require_once('db.inc.php');
+
+// Tüm sunucuları getir
+$all_servers = db_get_servers();
+
+// Tüm banned IP'leri getir
+$all_banned_ips = db_get_banned_ips();
+
+// Belirli bir sunucunun banned IP'leri
+$server1_bans = db_get_banned_ips($server_id);
+
+// İstatistikler
+$stats = db_get_statistics(null, 30); // Son 30 gün
+```
+
+### 4. Veritabanı Tabloları
+
+| Tablo | Açıklama |
+|-------|----------|
+| `servers` | Her fail2ban sunucusunu takip eder |
+| `jails` | Her sunucudaki jail'leri takip eder |
+| `banned_ips` | Tüm sunuculardaki banned IP'leri saklar |
+| `global_bans` | Tüm sunuculara uygulanması gereken IP'ler |
+| `audit_log` | Tüm ban/unban işlemlerinin log'u |
+| `statistics` | Günlük istatistikler |
+| `users` | Web interface kullanıcıları (gelecek sürümler için) |
+
+Detaylı şema için `database.sql` dosyasına bakın.
+
+### 5. Manuel Sync Komutları
 
 ```bash
 # Tüm banned IP'leri database'e gönder
@@ -172,38 +399,17 @@ php sync.php --apply-global
 
 # Belirli bir sunucu için
 php sync.php --server=mail-server-1
+
+# Yardım
+php sync.php --help
 ```
 
-### Otomatik Sync (Cron)
-
-```bash
-# Crontab düzenle
-sudo crontab -e
-
-# Her 5 dakikada sync
-*/5 * * * * /usr/bin/php /var/www/html/fail2ban/sync.php >> /var/log/fail2ban_sync.log 2>&1
-
-# Global ban'ları her 10 dakikada uygula
-*/10 * * * * /usr/bin/php /var/www/html/fail2ban/sync.php --apply-global >> /var/log/fail2ban_sync.log 2>&1
-```
-
-## 🗃️ Veritabanı Yapısı (Çoklu Sunucu)
-
-```
-servers          # Her fail2ban sunucusu
-jails            # Her sunucudaki jail'ler
-banned_ips       # Tüm banned IP'ler
-global_bans      # Global ban listesi
-audit_log        # Tüm işlem logları
-statistics       # İstatistikler
-users            # Web interface kullanıcıları
-```
-
-Detaylı şema için `database.sql` dosyasına bakın.
+---
 
 ## 🔒 Güvenlik
 
 ### Mevcut Korumalar
+
 ✅ CSRF koruması (token-based)
 ✅ XSS koruması (htmlspecialchars)
 ✅ Command injection koruması (escapeshellarg)
@@ -213,101 +419,318 @@ Detaylı şema için `database.sql` dosyasına bakın.
 ✅ Audit logging (çoklu sunucu modu)
 
 ### Öneriler
-- HTTPS kullanın (Let's Encrypt ücretsiz)
-- Güçlü şifreler kullanın
+
+**Zorunlu (Production için):**
+- ✅ HTTPS kullanın (Let's Encrypt ücretsiz)
+- ✅ Güçlü şifreler kullanın (bcrypt hash)
+- ✅ `$config['environment'] = 'production'` yapın
+- ✅ `.htaccess` ile hassas dosyaları koruyun
+
+**Opsiyonel (İleri Seviye):**
 - IP kısıtlaması yapın (.htaccess veya firewall)
-- Production'da `$config['environment'] = 'production'` yapın
 - Database kullanıcısına minimum yetki verin
+- MySQL bağlantılarını SSL/TLS ile şifreleyin
+- VPN kullanın (sunucular arası iletişim için)
+- Firewall'da sadece gerekli portları açın
+
+### MySQL Güvenlik
+
+```bash
+# SSL/TLS bağlantı zorla
+GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'%' REQUIRE SSL;
+
+# Specific IP'den bağlantı izni
+CREATE USER 'fail2ban_user'@'192.168.1.%' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'192.168.1.%';
+```
+
+---
 
 ## 📈 Performans
 
 ### Cache Stratejisi
+
 - **APCu**: Memory cache (en hızlı)
 - **File Cache**: Fallback (APCu yoksa)
 - **TTL**: 30 saniye (jail data için)
 - **GeoIP**: Static array cache (request süresince)
 
 ### Optimizasyonlar
+
 - DNS lookups devre dışı (`$f2b['usedns'] = false`)
 - sleep() çağrıları kaldırıldı
 - Database query'leri optimize edildi
-- Index'ler eklendi
+- Index'ler eklendi (database.sql)
 
 ### Beklenen Performans
-- İlk yükleme (cache miss): 1-3 saniye
-- Cache hit ile yükleme: < 0.5 saniye
-- APCu ile: Neredeyse anında
+
+- **İlk yükleme** (cache miss): 1-3 saniye
+- **Cache hit** ile yükleme: < 0.5 saniye
+- **APCu** ile: Neredeyse anında
+
+### Cache Kontrol
+
+```bash
+# APCu kurulu mu?
+php -m | grep apcu
+
+# Cache temizle (web interface'den)
+# "Refresh" butonuna tıkla
+
+# Manuel cache temizle
+php -r "if(function_exists('apcu_clear_cache')) apcu_clear_cache();"
+```
+
+---
 
 ## 🐛 Sorun Giderme
 
 ### Socket Permission Denied
+
+**Sorun:** `Permission denied to socket: /var/run/fail2ban/fail2ban.sock`
+
+**Çözüm:**
 ```bash
+# Seçenek 1: Full erişim (en kolay)
 sudo chmod 777 /var/run/fail2ban/fail2ban.sock
-# veya
+
+# Seçenek 2: Grup izni (daha güvenli)
 sudo usermod -a -G fail2ban www-data
+sudo chmod 660 /var/run/fail2ban/fail2ban.sock
+sudo systemctl restart apache2
+
+# Seçenek 3: Socket bypass (config.inc.php)
+$f2b['use_socket_check'] = false;
 ```
 
 ### Database Connection Failed
+
+**Sorun:** `Database connection failed`
+
+**Kontroller:**
 ```bash
 # MySQL'e bağlanabildiğinizi test edin
-mysql -h mysql_host -u fail2ban_user -p
+mysql -h 192.168.1.100 -u fail2ban_user -p fail2ban_central
 
 # Firewall kontrolü
-telnet mysql_host 3306
+telnet 192.168.1.100 3306
+
+# MySQL loglarını kontrol et
+sudo tail -f /var/log/mysql/error.log
+
+# Kullanıcı izinlerini kontrol et
+mysql -u root -p
+SHOW GRANTS FOR 'fail2ban_user'@'%';
 ```
 
 ### Sync Script Hataları
+
+**Sorun:** Sync script çalışmıyor veya hata veriyor
+
+**Debug:**
 ```bash
-# Manuel çalıştırıp hataları görün
+# Manuel çalıştır ve hataları gör
 php sync.php
 
 # PHP error log kontrolü
 tail -f /var/log/apache2/error.log
+
+# Sync log kontrolü
+tail -f /var/log/fail2ban_sync.log
+
+# Database bağlantısını test et
+php -r "
+require_once('config.inc.php');
+require_once('db.inc.php');
+\$db = get_db_connection();
+echo \$db ? 'DB OK' : 'DB FAIL';
+"
 ```
+
+### Slow Page Load
+
+**Sorun:** Sayfa yüklenmesi çok yavaş
+
+**Kontroller:**
+```bash
+# Cache çalışıyor mu?
+php -r "
+require_once('cache.inc.php');
+cache_set('test', 'value', 60);
+echo cache_get('test') === 'value' ? 'Cache OK' : 'Cache FAIL';
+"
+
+# DNS lookup'ı kapat (config.inc.php)
+$f2b['usedns'] = false;
+
+# APCu kur
+sudo apt-get install php-apcu
+sudo systemctl restart apache2
+```
+
+### GeoIP Warnings
+
+**Sorun:** Deprecation warnings from GeoIP2
+
+**Çözüm:** Warnings zaten suppress edilmiş (`@` operator). Eğer hala görüyorsan:
+
+```bash
+# GeoIP'yi devre dışı bırak (fail2ban.php'de comment out)
+# if (file_exists('vendor/autoload.php')) {
+#   @require_once 'vendor/autoload.php';
+# }
+
+# Veya GeoIP2 güncellemesi
+composer update
+```
+
+---
+
+## 🔧 Bakım
+
+### Log Yönetimi
+
+```bash
+# Sync loglarını kontrol et
+tail -f /var/log/fail2ban_sync.log
+
+# Log rotation (logrotate)
+sudo nano /etc/logrotate.d/fail2ban-sync
+
+# İçerik:
+# /var/log/fail2ban_sync.log {
+#     weekly
+#     rotate 4
+#     compress
+#     missingok
+#     notifempty
+# }
+```
+
+### Database Bakımı
+
+**Eski kayıtları temizle:**
+```sql
+-- 90 günden eski inactive ban kayıtlarını sil
+DELETE FROM banned_ips
+WHERE is_active = 0 AND unban_time < DATE_SUB(NOW(), INTERVAL 90 DAY);
+
+-- Eski audit log kayıtlarını sil (180 gün)
+DELETE FROM audit_log
+WHERE action_time < DATE_SUB(NOW(), INTERVAL 180 DAY);
+
+-- Tabloları optimize et
+OPTIMIZE TABLE banned_ips;
+OPTIMIZE TABLE audit_log;
+```
+
+**Database boyut kontrolü:**
+```sql
+SELECT
+    table_name,
+    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)'
+FROM information_schema.TABLES
+WHERE table_schema = 'fail2ban_central'
+ORDER BY (data_length + index_length) DESC;
+```
+
+### Backup
+
+```bash
+# Manuel backup
+mysqldump -u fail2ban_user -p fail2ban_central | gzip > fail2ban_backup_$(date +%Y%m%d).sql.gz
+
+# Otomatik günlük backup (cron)
+0 2 * * * mysqldump -u fail2ban_user -p'password' fail2ban_central | gzip > /backup/fail2ban_$(date +\%Y\%m\%d).sql.gz
+
+# Backup retention (7 gün)
+find /backup/fail2ban_*.sql.gz -mtime +7 -delete
+```
+
+### MySQL Performance Tuning
+
+```bash
+# Slow query log aktif et
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# Ekle:
+slow_query_log = 1
+long_query_time = 2
+slow_query_log_file = /var/log/mysql/slow.log
+
+# Restart
+sudo systemctl restart mysql
+
+# Yavaş sorguları kontrol et
+sudo mysqldumpslow -t 10 /var/log/mysql/slow.log
+```
+
+### Index Kontrolü
+
+```sql
+-- Eksik index'leri kontrol et
+SHOW INDEX FROM banned_ips;
+
+-- Kullanılmayan index'leri bul
+SELECT * FROM sys.schema_unused_indexes WHERE object_schema = 'fail2ban_central';
+```
+
+---
 
 ## 📁 Dosya Yapısı
 
 ```
 fail2ban/
 ├── index.php              # Login işleme
-├── login.php              # Login sayfası
+├── login.php              # Login sayfası (Bootstrap 5 dark)
 ├── fail2ban.php           # Ana dashboard
 ├── logout.php             # Logout
 ├── protected.php          # Örnek protected sayfa
 ├── engine.inc.php         # Fail2ban işlemleri
-├── cache.inc.php          # Cache sistemi
+├── cache.inc.php          # Cache sistemi (APCu/File)
 ├── csrf.inc.php           # CSRF koruması
-├── config.inc.php         # Konfigürasyon
+├── config.inc.php         # Konfigürasyon (gitignore)
 ├── config.example.php     # Örnek config
 ├── db.inc.php             # Database fonksiyonları
-├── sync.php               # Sync script
+├── sync.php               # Sync script (cron için)
 ├── database.sql           # MySQL şeması
-├── SETUP.md               # Detaylı kurulum
+├── README.md              # Bu dosya
 ├── CLAUDE.md              # AI dokümantasyonu
-└── README.md              # Bu dosya
+└── .gitignore             # Git ignore rules
 ```
+
+---
 
 ## 🤝 Katkıda Bulunma
 
 Katkılar memnuniyetle karşılanır! Lütfen pull request göndermeden önce:
+
 1. Kodu test edin
 2. Güvenlik açığı kontrolü yapın
 3. Dokümantasyonu güncelleyin
+
+---
 
 ## 📄 Lisans
 
 MIT License - Detaylar için LICENSE dosyasına bakın.
 
+---
+
 ## 🙏 Teşekkürler
 
-- Bootstrap 5 framework
-- Bootstrap Icons
-- MaxMind GeoIP2
-- Fail2ban project
+- [Bootstrap 5](https://getbootstrap.com/) - UI framework
+- [Bootstrap Icons](https://icons.getbootstrap.com/) - Icon set
+- [MaxMind GeoIP2](https://www.maxmind.com/) - IP geolocation
+- [Fail2ban](https://www.fail2ban.org/) - Intrusion prevention
+
+---
 
 ## 📞 Destek
 
-Sorunlar için GitHub Issues kullanın veya SETUP.md dosyasındaki troubleshooting bölümüne bakın.
+- **Issues**: GitHub Issues
+- **Email**: kerem@keremgok.com
+- **Dokümantasyon**: CLAUDE.md (AI assistant için)
 
 ---
 
