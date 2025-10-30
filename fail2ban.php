@@ -228,6 +228,11 @@ if (!isset($socket_error)) {
         <span class="navbar-text">
           <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['user']); ?>
         </span>
+        <?php if (isset($config['use_central_db']) && $config['use_central_db']): ?>
+        <button class="btn btn-outline-info btn-sm" onclick="location.href='control.php';" title="Multi-Server Control Panel">
+          <i class="bi bi-hdd-network"></i> Control
+        </button>
+        <?php endif; ?>
         <button class="btn btn-outline-primary btn-sm" onclick="location.href='admin.php';" title="Admin Panel">
           <i class="bi bi-gear-fill"></i> Admin
         </button>
