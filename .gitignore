@@ -1,0 +1,35 @@
+# Configuration files (contains sensitive data)
+config.inc.php
+
+# GeoIP database (large file, download separately)
+GeoLite2-City.mmdb
+
+# Composer dependencies
+vendor/
+composer.lock
+
+# Cache files
+/tmp/
+*.cache
+
+# Log files
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Session files
+sessions/
