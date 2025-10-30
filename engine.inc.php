@@ -59,7 +59,7 @@ function jail_info($jail)
   return $info;
 }
 
-function list_banned($jail)
+function list_banned($jail, $skip_dns = false)
 {
   global $f2b;
   $banned = array();
@@ -68,9 +68,10 @@ function list_banned($jail)
   $erg = @exec('fail2ban-client status ' . $jail . ' | grep "IP list:" | awk -F ":" \'{print$2}\' | awk \'{$1=$1;print}\'');
   if ($erg != '') {
     $banned = explode(" ", $erg);
-    if ($f2b['usedns'] === true) {
+    // Skip DNS resolution if requested (for async loading)
+    if (!$skip_dns && $f2b['usedns'] === true) {
       foreach ($banned as $i => $cli) {
-        $dns = gethostbyaddr($cli);
+        $dns = resolve_hostname($cli);
         if ($dns == $cli) {
           $dns = ' (unknown)';
         } else {
@@ -82,6 +83,41 @@ function list_banned($jail)
     return $banned;
   }
   return false;
+}
+
+/**
+ * Resolve hostname with caching and timeout
+ * @param string $ip IP address to resolve
+ * @return string Hostname or IP if resolution fails
+ */
+function resolve_hostname($ip)
+{
+  global $f2b;
+  require_once('cache.inc.php');
+
+  // Check cache first (24 hour TTL)
+  $cache_key = 'hostname_' . $ip;
+  $cached = cache_get($cache_key);
+  if ($cached !== null) {
+    return $cached;
+  }
+
+  // Set timeout for DNS query (default 2 seconds)
+  $timeout = isset($f2b['dns_timeout']) ? (int)$f2b['dns_timeout'] : 2;
+  $original_timeout = ini_get('default_socket_timeout');
+  ini_set('default_socket_timeout', $timeout);
+
+  // Perform DNS lookup
+  $hostname = @gethostbyaddr($ip);
+
+  // Restore original timeout
+  ini_set('default_socket_timeout', $original_timeout);
+
+  // Cache result for 24 hours (86400 seconds)
+  $cache_ttl = isset($f2b['dns_cache_ttl']) ? (int)$f2b['dns_cache_ttl'] : 86400;
+  cache_set($cache_key, $hostname, $cache_ttl);
+
+  return $hostname;
 }
 
 function ban_ip($jail, $ip)

@@ -119,6 +119,9 @@ $f2b['socket'] = '/var/run/fail2ban/fail2ban.sock'; # path to the Fail2Ban socke
 $f2b['use_socket_check'] = false; # Set to false to skip socket file check (use fail2ban-client directly)
 
 $f2b['usedns'] = false; # show hostnames per banned IP [true|false] - Set to false for faster page load
+$f2b['dns_async'] = true; # load hostnames asynchronously via AJAX [true|false] - Dramatically improves page load speed
+$f2b['dns_timeout'] = 2; # DNS resolution timeout in seconds (default: 2)
+$f2b['dns_cache_ttl'] = 86400; # DNS cache TTL in seconds (default: 86400 = 24 hours)
 $f2b['noempt'] = true; # do not show jails without banned clients [true|false]
 $f2b['jainfo'] = true; # show jail information in table headers [true|false]
 

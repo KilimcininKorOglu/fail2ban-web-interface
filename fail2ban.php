@@ -95,8 +95,11 @@ if (!isset($socket_error)) {
   if ($jails === null) {
     // Cache miss - fetch from fail2ban
     $jails = list_jails();
+    // Check if async DNS is enabled
+    $async_dns = isset($f2b['dns_async']) && $f2b['dns_async'] === true && $f2b['usedns'] === true;
     foreach ($jails as $j => $i) {
-      $banned = list_banned($j);
+      // Skip DNS resolution if async is enabled
+      $banned = list_banned($j, $async_dns);
       $jails[$j] = $banned;
     }
     cache_set($cache_key, $jails, 30); // Cache for 30 seconds
@@ -361,6 +364,8 @@ if (!isset($socket_error)) {
                             $country = getCountryFromIP($ip);
                             $country_cache[$ip] = $country;
                           }
+                          // Check if async DNS is enabled
+                          $async_dns = isset($f2b['dns_async']) && $f2b['dns_async'] === true && $f2b['usedns'] === true;
                           ?>
                           <tr>
                             <td>
@@ -374,7 +379,14 @@ if (!isset($socket_error)) {
                               <code class="text-warning"><?php echo htmlspecialchars($ip, ENT_QUOTES, 'UTF-8'); ?></code>
                             </td>
                             <td>
-                              <small class="text-muted"><?php echo $hostname ? htmlspecialchars($hostname, ENT_QUOTES, 'UTF-8') : 'unknown'; ?></small>
+                              <?php if ($async_dns): ?>
+                                <small class="text-muted hostname-cell" data-ip="<?php echo htmlspecialchars($ip, ENT_QUOTES, 'UTF-8'); ?>">
+                                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                  Loading...
+                                </small>
+                              <?php else: ?>
+                                <small class="text-muted"><?php echo $hostname ? htmlspecialchars($hostname, ENT_QUOTES, 'UTF-8') : 'unknown'; ?></small>
+                              <?php endif; ?>
                             </td>
                             <td>
                               <?php if ($country): ?>
@@ -410,6 +422,66 @@ if (!isset($socket_error)) {
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <?php if (isset($f2b['dns_async']) && $f2b['dns_async'] === true && $f2b['usedns'] === true): ?>
+  <!-- Asynchronous Hostname Resolution -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const hostnameCells = document.querySelectorAll('.hostname-cell');
+      const resolvedIPs = new Set(); // Avoid duplicate requests
+
+      // Process hostnames in batches for better performance
+      const batchSize = 10;
+      const delay = 100; // 100ms between batches
+
+      let batch = [];
+      hostnameCells.forEach((cell, index) => {
+        batch.push(cell);
+
+        if (batch.length === batchSize || index === hostnameCells.length - 1) {
+          setTimeout(() => {
+            processBatch(batch);
+          }, Math.floor(index / batchSize) * delay);
+          batch = [];
+        }
+      });
+
+      function processBatch(cells) {
+        cells.forEach(cell => {
+          const ip = cell.getAttribute('data-ip');
+
+          // Skip if already resolved
+          if (resolvedIPs.has(ip)) {
+            return;
+          }
+          resolvedIPs.add(ip);
+
+          // Fetch hostname via AJAX
+          fetch('resolve_hostname.php?ip=' + encodeURIComponent(ip))
+            .then(response => response.json())
+            .then(data => {
+              // Update all cells with this IP
+              document.querySelectorAll('.hostname-cell[data-ip="' + ip + '"]').forEach(targetCell => {
+                if (data.resolved && data.hostname !== ip) {
+                  targetCell.textContent = data.hostname;
+                  targetCell.classList.remove('text-muted');
+                  targetCell.classList.add('text-info');
+                } else {
+                  targetCell.textContent = 'unknown';
+                }
+              });
+            })
+            .catch(error => {
+              // Silently fail - keep "Loading..." or show "unknown"
+              document.querySelectorAll('.hostname-cell[data-ip="' + ip + '"]').forEach(targetCell => {
+                targetCell.textContent = 'unknown';
+              });
+            });
+        });
+      }
+    });
+  </script>
+  <?php endif; ?>
 </body>
 
 </html>
