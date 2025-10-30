@@ -2,10 +2,9 @@
 config.inc.php
 
 # GeoIP database (large file, download separately)
-GeoLite2-City.mmdb
+*.mmdb
 
 # Composer dependencies
-vendor/
 composer.lock
 
 # Cache files
