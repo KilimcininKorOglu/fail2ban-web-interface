@@ -224,10 +224,13 @@ if (!isset($socket_error)) {
         <i class="bi bi-shield-check text-primary"></i>
         <strong><?php echo htmlspecialchars($config['title']); ?></strong>
       </a>
-      <div class="d-flex align-items-center">
-        <span class="navbar-text me-3">
+      <div class="d-flex align-items-center gap-2">
+        <span class="navbar-text">
           <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['user']); ?>
         </span>
+        <button class="btn btn-outline-primary btn-sm" onclick="location.href='admin.php';" title="Admin Panel">
+          <i class="bi bi-gear-fill"></i> Admin
+        </button>
         <button class="btn btn-outline-danger btn-sm" onclick="location.href='logout.php';">
           <i class="bi bi-box-arrow-right"></i> Logout
         </button>
