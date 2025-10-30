@@ -188,24 +188,56 @@ $config['use_central_db'] = false;  // Merkezi DB kullanma
 
 Birden fazla bağımsız fail2ban sunucusunu merkezi bir MySQL veritabanı ile yönetin.
 
-### Mimari
+### 📦 İki Kurulum Seçeneği
+
+#### Seçenek 1: Lightweight Agent (ÖNERİLEN)
+
+- ✅ Yan sunucularda sadece agent çalışır (PHP CLI yeterli)
+- ✅ Web server gerekmez
+- ✅ Minimal resource kullanımı
+- ✅ Kolay kurulum
+- [Agent Dokümantasyonu →](agent/README.md)
+
+#### Seçenek 2: Full Interface (Her Sunucuda)
+
+- Her sunucuda full web interface
+- Daha fazla resource kullanımı
+- Her sunucudan yönetim imkanı
+
+### Mimari (Agent Kullanarak - Önerilen)
 
 ```
-┌─────────────────┐
-│   Web Server 1  │ sync.php (cron)
-│   fail2ban      │────┐
-└─────────────────┘    │
-                       │
-┌─────────────────┐    │    ┌──────────────────────┐
-│   Mail Server   │    ├───▶│  Central MySQL DB    │
-│   fail2ban      │────┤    │                      │◀──── Web Dashboard
-└─────────────────┘    │    │  - servers           │      (Tüm sunucular)
-                       │    │  - jails             │
-┌─────────────────┐    │    │  - banned_ips        │
-│   DB Server     │    │    │  - global_bans       │
-│   fail2ban      │────┘    │  - audit_log         │
-└─────────────────┘         └──────────────────────┘
+┌─────────────────────────┐
+│   Central Server        │
+│   ┌─────────────────┐   │
+│   │ Web Interface   │   │◀──── Yönetim (Tarayıcı)
+│   └─────────────────┘   │
+│   ┌─────────────────┐   │
+│   │  MySQL Database │   │
+│   └─────────────────┘   │
+└─────────────────────────┘
+            ▲
+            │ MySQL (3306)
+            │
+  ┌─────────┼─────────┐
+  │         │         │
+  │         │         │
+┌─┴──┐    ┌─┴──┐    ┌─┴──┐
+│Web │    │Mail│    │DB  │   Yan Sunucular
+│Srv │    │Srv │    │Srv │   (Sadece Agent)
+├────┤    ├────┤    ├────┤
+│f2b │    │f2b │    │f2b │   fail2ban running
+│    │    │    │    │    │
+│agt │    │agt │    │agt │   agent.php (cron)
+└────┘    └────┘    └────┘
 ```
+
+**Avantajlar:**
+
+- ✅ Yan sunucularda web server gerekmez
+- ✅ Minimal kurulum (3 dosya)
+- ✅ Düşük resource kullanımı
+- ✅ Kolay yönetim
 
 ### Özellikler
 
@@ -248,9 +280,44 @@ sudo systemctl restart mysql
 sudo ufw allow 3306/tcp
 ```
 
-### 2. Her Fail2Ban Sunucusunda Yapılacaklar
+### 2. Yan Sunucularda Agent Kurulumu (Önerilen)
 
-#### Adım 1: Dosyaları Kopyala
+**Çok daha basit ve hafif!**
+
+```bash
+# 1. Agent dosyalarını kopyala
+cd /path/to/fail2ban/
+sudo cp -r agent/ /opt/fail2ban-agent/
+
+# 2. Kurulum scriptini çalıştır
+cd /opt/fail2ban-agent/
+sudo ./install.sh
+
+# 3. Config düzenle (her sunucuda farklı server_name!)
+sudo nano /opt/fail2ban-agent/agent.conf.php
+
+# 4. Test et
+php /opt/fail2ban-agent/agent.php --test
+
+# 5. Cron ekle
+sudo crontab -e
+# */5 * * * * /usr/bin/php /opt/fail2ban-agent/agent.php >> /var/log/fail2ban_agent.log 2>&1
+```
+
+**Gereksinimler (Agent için):**
+
+- PHP CLI (php-cli)
+- PHP MySQL extension (php-mysql)
+- fail2ban kurulu
+- Web server GEREKMİYOR!
+
+Detaylı agent dokümantasyonu: [agent/README.md](agent/README.md)
+
+---
+
+### 2b. Alternatif: Full Interface (Her Sunucuda)
+
+Eğer her sunucuda web interface istiyorsanız:
 
 ```bash
 # Web dizinine kopyala
@@ -289,6 +356,7 @@ $db_config = array(
 ```
 
 **UYARI:**
+
 - `$db_config` değişkeni **mutlaka** `config.inc.php` içinde tanımlanmalı
 - `$config['use_central_db'] = false` ise sync.php çalışmaz (sadece local mod)
 - Her sunucunun `server_name`'i benzersiz (unique) olmalı
@@ -342,12 +410,14 @@ $config['db_mode'] = 'readonly';  // Sadece okuma
 Bir IP'yi tüm sunucularda banlamak için:
 
 **SQL ile manuel:**
+
 ```sql
 INSERT INTO global_bans (ip_address, reason, banned_by, permanent)
 VALUES ('123.45.67.89', 'Brute force attack', 'admin', 0);
 ```
 
 **PHP ile (db.inc.php fonksiyonu kullanarak):**
+
 ```php
 db_add_global_ban('123.45.67.89', 'Brute force attack', 'admin', false);
 ```
@@ -421,12 +491,14 @@ php sync.php --help
 ### Öneriler
 
 **Zorunlu (Production için):**
+
 - ✅ HTTPS kullanın (Let's Encrypt ücretsiz)
 - ✅ Güçlü şifreler kullanın (bcrypt hash)
 - ✅ `$config['environment'] = 'production'` yapın
 - ✅ `.htaccess` ile hassas dosyaları koruyun
 
 **Opsiyonel (İleri Seviye):**
+
 - IP kısıtlaması yapın (.htaccess veya firewall)
 - Database kullanıcısına minimum yetki verin
 - MySQL bağlantılarını SSL/TLS ile şifreleyin
@@ -490,6 +562,7 @@ php -r "if(function_exists('apcu_clear_cache')) apcu_clear_cache();"
 **Sorun:** `Permission denied to socket: /var/run/fail2ban/fail2ban.sock`
 
 **Çözüm:**
+
 ```bash
 # Seçenek 1: Full erişim (en kolay)
 sudo chmod 777 /var/run/fail2ban/fail2ban.sock
@@ -508,6 +581,7 @@ $f2b['use_socket_check'] = false;
 **Sorun:** `Database connection failed`
 
 **Kontroller:**
+
 ```bash
 # MySQL'e bağlanabildiğinizi test edin
 mysql -h 192.168.1.100 -u fail2ban_user -p fail2ban_central
@@ -528,6 +602,7 @@ SHOW GRANTS FOR 'fail2ban_user'@'%';
 **Sorun:** Sync script çalışmıyor veya hata veriyor
 
 **Debug:**
+
 ```bash
 # Manuel çalıştır ve hataları gör
 php sync.php
@@ -552,6 +627,7 @@ echo \$db ? 'DB OK' : 'DB FAIL';
 **Sorun:** Sayfa yüklenmesi çok yavaş
 
 **Kontroller:**
+
 ```bash
 # Cache çalışıyor mu?
 php -r "
@@ -610,6 +686,7 @@ sudo nano /etc/logrotate.d/fail2ban-sync
 ### Database Bakımı
 
 **Eski kayıtları temizle:**
+
 ```sql
 -- 90 günden eski inactive ban kayıtlarını sil
 DELETE FROM banned_ips
@@ -625,6 +702,7 @@ OPTIMIZE TABLE audit_log;
 ```
 
 **Database boyut kontrolü:**
+
 ```sql
 SELECT
     table_name,
@@ -696,7 +774,13 @@ fail2ban/
 ├── database.sql           # MySQL şeması
 ├── README.md              # Bu dosya
 ├── CLAUDE.md              # AI dokümantasyonu
-└── .gitignore             # Git ignore rules
+├── .gitignore             # Git ignore rules
+└── agent/                 # Lightweight agent (yan sunucular için)
+    ├── agent.php          # Agent script
+    ├── agent.conf.php     # Config (gitignore)
+    ├── agent.conf.example.php  # Örnek config
+    ├── install.sh         # Otomatik kurulum
+    └── README.md          # Agent dokümantasyonu
 ```
 
 ---
@@ -729,7 +813,7 @@ MIT License - Detaylar için LICENSE dosyasına bakın.
 ## 📞 Destek
 
 - **Issues**: GitHub Issues
-- **Email**: kerem@keremgok.com
+- **Email**: <kerem@keremgok.com>
 - **Dokümantasyon**: CLAUDE.md (AI assistant için)
 
 ---

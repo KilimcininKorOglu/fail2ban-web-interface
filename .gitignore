@@ -1,5 +1,6 @@
 # Configuration files (contains sensitive data)
 config.inc.php
+agent/agent.conf.php
 
 # GeoIP database (large file, download separately)
 *.mmdb
