@@ -446,15 +446,15 @@ $stats = db_get_statistics(null, 30); // Son 30 gün
 
 ### 4. Veritabanı Tabloları
 
-| Tablo | Açıklama |
-|-------|----------|
-| `servers` | Her fail2ban sunucusunu takip eder |
-| `jails` | Her sunucudaki jail'leri takip eder |
-| `banned_ips` | Tüm sunuculardaki banned IP'leri saklar |
-| `global_bans` | Tüm sunuculara uygulanması gereken IP'ler |
-| `audit_log` | Tüm ban/unban işlemlerinin log'u |
-| `statistics` | Günlük istatistikler |
-| `users` | Web interface kullanıcıları (gelecek sürümler için) |
+| Tablo         | Açıklama                                            |
+| ------------- | --------------------------------------------------- |
+| `servers`     | Her fail2ban sunucusunu takip eder                  |
+| `jails`       | Her sunucudaki jail'leri takip eder                 |
+| `banned_ips`  | Tüm sunuculardaki banned IP'leri saklar             |
+| `global_bans` | Tüm sunuculara uygulanması gereken IP'ler           |
+| `audit_log`   | Tüm ban/unban işlemlerinin log'u                    |
+| `statistics`  | Günlük istatistikler                                |
+| `users`       | Web interface kullanıcıları (gelecek sürümler için) |
 
 Detaylı şema için `database.sql` dosyasına bakın.
 

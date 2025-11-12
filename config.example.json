@@ -1,0 +1,51 @@
+{
+  "_comment": "Fail2Ban Web Interface Configuration - Copy to config.json and customize",
+  "environment": "development",
+  "title": "Fail2Ban Dashboard",
+  "server": {
+    "name": "my-server",
+    "ip": "127.0.0.1"
+  },
+  "database": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 3306,
+    "name": "fail2ban_central",
+    "username": "fail2ban_user",
+    "password": "your_secure_password",
+    "charset": "utf8mb4"
+  },
+  "authentication": {
+    "users": [
+      {
+        "_comment": "SECURITY: Use password_hash. Generate: php -r \"echo password_hash('yourpass', PASSWORD_DEFAULT);\"",
+        "username": "admin",
+        "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+      }
+    ]
+  },
+  "fail2ban": {
+    "socket": "/var/run/fail2ban/fail2ban.sock",
+    "use_socket_check": false,
+    "usedns": false,
+    "dns_async": true,
+    "dns_timeout": 2,
+    "dns_cache_ttl": 86400,
+    "noempt": true,
+    "jainfo": true
+  },
+  "security": {
+    "rate_limit": {
+      "_comment": "Brute-force protection settings for login attempts",
+      "max_attempts": 5,
+      "lockout_time": 900,
+      "window": 1800
+    },
+    "session": {
+      "_comment": "Session timeout settings in seconds",
+      "timeout": 1800,
+      "regeneration_interval": 600
+    }
+  },
+  "version": "0.4 (2025)"
+}

@@ -1,5 +1,7 @@
 # Configuration files (contains sensitive data)
 config.inc.php
+config.json
+config.json.backup.*
 agent/agent.conf.php
 
 # GeoIP database (large file, download separately)

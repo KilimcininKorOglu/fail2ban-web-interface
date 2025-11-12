@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Simple caching helper - uses APCu if available, otherwise file cache
  */
 
-function cache_get($key) {
+function cache_get($key)
+{
     // Try APCu first (if available)
     if (function_exists('apcu_fetch')) {
         $success = false;
@@ -22,10 +24,15 @@ function cache_get($key) {
     return null;
 }
 
-function cache_set($key, $value, $ttl = 60) {
+function cache_set($key, $value, $ttl = 60)
+{
     // Try APCu first (if available)
     if (function_exists('apcu_store')) {
-        return apcu_store($key, $value, $ttl);
+        $result = apcu_store($key, $value, $ttl);
+        if (!$result) {
+            error_log("Fail2Ban Cache: APCu store failed for key: $key");
+        }
+        return $result;
     }
 
     // Fallback to file cache
@@ -34,10 +41,18 @@ function cache_set($key, $value, $ttl = 60) {
         'value' => $value,
         'expire' => time() + $ttl
     ];
-    return @file_put_contents($cache_file, serialize($data)) !== false;
+
+    $result = @file_put_contents($cache_file, serialize($data), LOCK_EX);
+    if ($result === false) {
+        error_log("Fail2Ban Cache: Failed to write cache file: $cache_file");
+        return false;
+    }
+
+    return true;
 }
 
-function cache_clear($pattern = null) {
+function cache_clear($pattern = null)
+{
     if (function_exists('apcu_clear_cache')) {
         apcu_clear_cache();
     }

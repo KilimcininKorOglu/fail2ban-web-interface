@@ -12,7 +12,7 @@
  *   php agent.php --daemon           # Run as daemon (not implemented yet)
  *
  * Cron setup:
- *   */5 * * * * /usr/bin/php /opt/fail2ban-agent/agent.php >> /var/log/fail2ban_agent.log 2>&1
+ *   5 * * * * /usr/bin/php /opt/fail2ban-agent/agent.php >> /var/log/fail2ban_agent.log 2>&1
  */
 
 // Load configuration
@@ -76,7 +76,8 @@ if (isset($options['test'])) {
 /**
  * Get database connection
  */
-function get_db_connection($config) {
+function get_db_connection($config)
+{
     $dsn = sprintf(
         "mysql:host=%s;port=%d;dbname=%s;charset=%s",
         $config['db']['host'],
@@ -97,7 +98,8 @@ function get_db_connection($config) {
 /**
  * Get or create server ID
  */
-function get_server_id($db, $server_name, $server_ip) {
+function get_server_id($db, $server_name, $server_ip)
+{
     try {
         $stmt = $db->prepare("SELECT id FROM servers WHERE server_name = ?");
         $stmt->execute([$server_name]);
@@ -121,7 +123,8 @@ function get_server_id($db, $server_name, $server_ip) {
 /**
  * Get or create jail ID
  */
-function get_jail_id($db, $server_id, $jail_name, $jail_info = array()) {
+function get_jail_id($db, $server_id, $jail_name, $jail_info = array())
+{
     try {
         $stmt = $db->prepare("SELECT id FROM jails WHERE server_id = ? AND jail_name = ?");
         $stmt->execute([$server_id, $jail_name]);
@@ -165,7 +168,8 @@ function get_jail_id($db, $server_id, $jail_name, $jail_info = array()) {
 /**
  * Sync banned IP to database
  */
-function sync_banned_ip($db, $server_id, $jail_id, $ip_address) {
+function sync_banned_ip($db, $server_id, $jail_id, $ip_address)
+{
     try {
         $stmt = $db->prepare("
             SELECT id, ban_count FROM banned_ips
@@ -200,7 +204,8 @@ function sync_banned_ip($db, $server_id, $jail_id, $ip_address) {
 /**
  * Get list of jails
  */
-function list_jails() {
+function list_jails()
+{
     $jails = array();
     $erg = @exec('fail2ban-client status | grep "Jail list:" | sed "s/ //g" | awk \'{split($2,a,","); for(i in a) print a[i]}\'', $output);
 
@@ -218,7 +223,8 @@ function list_jails() {
 /**
  * Get banned IPs for a jail
  */
-function list_banned($jail) {
+function list_banned($jail)
+{
     $banned = array();
     $jail_escaped = escapeshellarg($jail);
     $erg = @exec("fail2ban-client status $jail_escaped | grep \"Banned IP list:\" | awk -F ':' '{print\$2}' | awk '{\$1=\$1;print}'", $output);
@@ -239,7 +245,8 @@ function list_banned($jail) {
 /**
  * Get jail info
  */
-function jail_info($jail) {
+function jail_info($jail)
+{
     $info = array();
     $jail_escaped = escapeshellarg($jail);
 
@@ -257,7 +264,8 @@ function jail_info($jail) {
 /**
  * Get global bans from database
  */
-function get_global_bans($db) {
+function get_global_bans($db)
+{
     try {
         $stmt = $db->prepare("
             SELECT ip_address, reason FROM global_bans
@@ -276,7 +284,8 @@ function get_global_bans($db) {
 /**
  * Ban IP in fail2ban
  */
-function ban_ip($jail, $ip) {
+function ban_ip($jail, $ip)
+{
     if (!filter_var($ip, FILTER_VALIDATE_IP)) {
         return false;
     }
@@ -292,7 +301,8 @@ function ban_ip($jail, $ip) {
 /**
  * Log message
  */
-function log_message($message) {
+function log_message($message)
+{
     echo "[" . date('Y-m-d H:i:s') . "] $message\n";
 }
 
@@ -373,7 +383,6 @@ try {
     }
 
     log_message("Sync completed successfully");
-
 } catch (Exception $e) {
     log_message("FATAL ERROR: " . $e->getMessage());
     exit(1);

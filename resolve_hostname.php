@@ -1,4 +1,5 @@
 <?php
+
 /**
  * AJAX Hostname Resolver
  *
@@ -6,16 +7,15 @@
  * Usage: resolve_hostname.php?ip=192.168.1.1
  */
 
-session_start();
-
-// Security: Check if user is authenticated
-if (!isset($_SESSION['active']) || $_SESSION['active'] !== true) {
-    http_response_code(403);
-    die(json_encode(['error' => 'Unauthorized']));
-}
-
+require_once('session.inc.php');
 require_once('config.inc.php');
 require_once('engine.inc.php');
+
+// Check authentication and session timeout
+if (!check_session_timeout(1800)) {
+    http_response_code(403);
+    die(json_encode(['error' => 'Unauthorized - Session expired']));
+}
 
 // Validate input
 if (!isset($_GET['ip']) || empty($_GET['ip'])) {

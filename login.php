@@ -41,19 +41,19 @@ require_once('config.inc.php'); ?>
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     }
 
-    .form-floating > .form-control {
+    .form-floating>.form-control {
       background-color: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.1);
       color: #fff;
     }
 
-    .form-floating > .form-control:focus {
+    .form-floating>.form-control:focus {
       background-color: rgba(255, 255, 255, 0.08);
       border-color: #0d6efd;
       box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
 
-    .form-floating > label {
+    .form-floating>label {
       color: rgba(255, 255, 255, 0.6);
     }
 
@@ -110,6 +110,25 @@ require_once('config.inc.php'); ?>
 
           <!-- Title -->
           <h1 class="h3 mb-4 fw-normal text-center">Sign in to Fail2Ban</h1>
+
+          <!-- Error Messages -->
+          <?php
+          if (isset($_SESSION['login_error'])) {
+            $error_type = isset($_SESSION['login_error_type']) ? $_SESSION['login_error_type'] : 'invalid';
+            $icon = ($error_type === 'lockout') ? 'bi-lock-fill' : 'bi-exclamation-triangle-fill';
+            $bg_color = ($error_type === 'lockout') ? 'bg-danger' : 'bg-warning';
+
+            echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+            echo '<i class="bi ' . $icon . ' me-2"></i>';
+            echo '<strong>' . htmlspecialchars($_SESSION['login_error']) . '</strong>';
+            echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+            echo '</div>';
+
+            // Clear the error message after displaying
+            unset($_SESSION['login_error']);
+            unset($_SESSION['login_error_type']);
+          }
+          ?>
 
           <!-- Username -->
           <div class="form-floating mb-3">

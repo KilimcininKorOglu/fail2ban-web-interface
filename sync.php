@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Sync script: Synchronizes local fail2ban data with central MySQL database
  *
@@ -8,7 +9,7 @@
  *   php sync.php --apply-global     # Apply global bans to local fail2ban
  *
  * Add to cron for automatic sync:
- *   */5 * * * * /usr/bin/php /path/to/sync.php >> /var/log/fail2ban_sync.log 2>&1
+ *   5 * * * * /usr/bin/php /path/to/sync.php >> /var/log/fail2ban_sync.log 2>&1
  */
 
 require_once('config.inc.php');

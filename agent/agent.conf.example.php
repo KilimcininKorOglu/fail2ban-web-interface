@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Fail2Ban Agent Configuration
  *

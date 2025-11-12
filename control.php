@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Control Panel - Multi-Server Overview
  *
@@ -6,18 +7,12 @@
  * Features: server status, ban statistics, global bans, audit log
  */
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+require_once('session.inc.php');
 require_once('config.inc.php');
 require_once('csrf.inc.php');
 
-// Check authentication
-if (!isset($_SESSION['active']) || $_SESSION['active'] == false) {
-    header("Location: login.php");
-    exit;
-}
+// Check authentication and session timeout
+require_authentication(1800, 'index.php');
 
 // Check if central database is enabled
 if (!isset($config['use_central_db']) || $config['use_central_db'] === false) {
@@ -130,13 +125,16 @@ try {
 
 // Calculate overall statistics
 $total_servers = count($servers);
-$active_servers = count(array_filter($servers, function($s) { return $s['is_active'] == 1; }));
+$active_servers = count(array_filter($servers, function ($s) {
+    return $s['is_active'] == 1;
+}));
 $total_active_bans = array_sum(array_column($server_stats, 'ban_count'));
 $total_all_time_bans = array_sum(array_column($server_stats, 'total_bans'));
 $total_global_bans = count($global_bans);
 ?>
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -149,68 +147,83 @@ $total_global_bans = count($global_bans);
             min-height: 100vh;
             color: #e6edf3;
         }
+
         .navbar {
             background: rgba(13, 17, 23, 0.95) !important;
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .card {
             background: rgba(13, 17, 23, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
+
         .stat-card {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             transition: transform 0.2s;
         }
+
         .stat-card:hover {
             transform: translateY(-5px);
         }
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: bold;
             color: #667eea;
         }
+
         .server-card {
             transition: all 0.3s;
             cursor: pointer;
         }
+
         .server-card:hover {
             transform: translateY(-2px);
             border-color: rgba(102, 126, 234, 0.5) !important;
         }
+
         .server-status {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             display: inline-block;
         }
+
         .status-online {
             background: #28a745;
             box-shadow: 0 0 10px #28a745;
         }
+
         .status-offline {
             background: #dc3545;
             box-shadow: 0 0 10px #dc3545;
         }
+
         .status-warning {
             background: #ffc107;
             box-shadow: 0 0 10px #ffc107;
         }
+
         .table-dark {
             --bs-table-bg: rgba(13, 17, 23, 0.6);
         }
+
         .badge-custom {
             padding: 0.5em 1em;
             font-size: 0.875rem;
         }
+
         .tab-content {
             padding-top: 1.5rem;
         }
     </style>
 </head>
+
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
@@ -239,17 +252,17 @@ $total_global_bans = count($global_bans);
     <div class="container-fluid px-4">
         <!-- Messages -->
         <?php if ($error_message): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($error_message); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($error_message); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
 
         <?php if ($success_message): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($success_message); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($success_message); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
 
         <!-- Overall Statistics -->
@@ -325,76 +338,76 @@ $total_global_bans = count($global_bans);
             <div class="tab-pane fade show active" id="servers" role="tabpanel">
                 <div class="row">
                     <?php foreach ($servers as $server): ?>
-                    <?php
-                    $stats = $server_stats[$server['id']];
-                    $last_sync = $server['last_sync'] ? strtotime($server['last_sync']) : null;
-                    $sync_age = $last_sync ? time() - $last_sync : null;
+                        <?php
+                        $stats = $server_stats[$server['id']];
+                        $last_sync = $server['last_sync'] ? strtotime($server['last_sync']) : null;
+                        $sync_age = $last_sync ? time() - $last_sync : null;
 
-                    // Determine status
-                    if (!$server['is_active']) {
-                        $status = 'offline';
-                        $status_text = 'Inactive';
-                    } elseif (!$last_sync || $sync_age > 1800) { // 30 minutes
-                        $status = 'warning';
-                        $status_text = 'No recent sync';
-                    } else {
-                        $status = 'online';
-                        $status_text = 'Online';
-                    }
-                    ?>
-                    <div class="col-md-4 mb-3">
-                        <div class="card server-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="server-status status-<?php echo $status; ?>"></span>
-                                    <strong class="ms-2"><?php echo htmlspecialchars($server['server_name']); ?></strong>
+                        // Determine status
+                        if (!$server['is_active']) {
+                            $status = 'offline';
+                            $status_text = 'Inactive';
+                        } elseif (!$last_sync || $sync_age > 1800) { // 30 minutes
+                            $status = 'warning';
+                            $status_text = 'No recent sync';
+                        } else {
+                            $status = 'online';
+                            $status_text = 'Online';
+                        }
+                        ?>
+                        <div class="col-md-4 mb-3">
+                            <div class="card server-card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="server-status status-<?php echo $status; ?>"></span>
+                                        <strong class="ms-2"><?php echo htmlspecialchars($server['server_name']); ?></strong>
+                                    </div>
+                                    <span class="badge bg-<?php echo $status === 'online' ? 'success' : ($status === 'warning' ? 'warning' : 'danger'); ?>">
+                                        <?php echo $status_text; ?>
+                                    </span>
                                 </div>
-                                <span class="badge bg-<?php echo $status === 'online' ? 'success' : ($status === 'warning' ? 'warning' : 'danger'); ?>">
-                                    <?php echo $status_text; ?>
-                                </span>
-                            </div>
-                            <div class="card-body">
-                                <p class="mb-2">
-                                    <i class="bi bi-geo-alt text-primary"></i>
-                                    <strong>IP:</strong> <code><?php echo htmlspecialchars($server['server_ip']); ?></code>
-                                </p>
-                                <p class="mb-2">
-                                    <i class="bi bi-clock text-info"></i>
-                                    <strong>Last Sync:</strong>
-                                    <?php if ($last_sync): ?>
-                                        <?php echo date('Y-m-d H:i:s', $last_sync); ?>
-                                        <small class="text-muted">(<?php echo floor($sync_age / 60); ?>m ago)</small>
-                                    <?php else: ?>
-                                        <span class="text-muted">Never</span>
-                                    <?php endif; ?>
-                                </p>
-                                <hr>
-                                <div class="row text-center">
-                                    <div class="col-4">
-                                        <div class="text-primary" style="font-size: 1.5rem;"><?php echo $stats['jail_count']; ?></div>
-                                        <small class="text-muted">Jails</small>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="text-danger" style="font-size: 1.5rem;"><?php echo $stats['ban_count']; ?></div>
-                                        <small class="text-muted">Active</small>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="text-warning" style="font-size: 1.5rem;"><?php echo $stats['total_bans']; ?></div>
-                                        <small class="text-muted">Total</small>
+                                <div class="card-body">
+                                    <p class="mb-2">
+                                        <i class="bi bi-geo-alt text-primary"></i>
+                                        <strong>IP:</strong> <code><?php echo htmlspecialchars($server['server_ip']); ?></code>
+                                    </p>
+                                    <p class="mb-2">
+                                        <i class="bi bi-clock text-info"></i>
+                                        <strong>Last Sync:</strong>
+                                        <?php if ($last_sync): ?>
+                                            <?php echo date('Y-m-d H:i:s', $last_sync); ?>
+                                            <small class="text-muted">(<?php echo floor($sync_age / 60); ?>m ago)</small>
+                                        <?php else: ?>
+                                            <span class="text-muted">Never</span>
+                                        <?php endif; ?>
+                                    </p>
+                                    <hr>
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="text-primary" style="font-size: 1.5rem;"><?php echo $stats['jail_count']; ?></div>
+                                            <small class="text-muted">Jails</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-danger" style="font-size: 1.5rem;"><?php echo $stats['ban_count']; ?></div>
+                                            <small class="text-muted">Active</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-warning" style="font-size: 1.5rem;"><?php echo $stats['total_bans']; ?></div>
+                                            <small class="text-muted">Total</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     <?php endforeach; ?>
 
                     <?php if (empty($servers)): ?>
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> No servers found in database.
-                            Servers will appear here automatically when agents sync data.
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> No servers found in database.
+                                Servers will appear here automatically when agents sync data.
+                            </div>
                         </div>
-                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -421,37 +434,37 @@ $total_global_bans = count($global_bans);
                                 </thead>
                                 <tbody>
                                     <?php foreach ($recent_bans as $ban): ?>
-                                    <tr>
-                                        <td>
-                                            <span class="badge bg-primary badge-custom">
-                                                <?php echo htmlspecialchars($ban['server_name']); ?>
-                                            </span>
-                                        </td>
-                                        <td><?php echo htmlspecialchars($ban['jail_name']); ?></td>
-                                        <td><code><?php echo htmlspecialchars($ban['ip_address']); ?></code></td>
-                                        <td>
-                                            <small class="text-muted">
-                                                <?php echo $ban['hostname'] ? htmlspecialchars($ban['hostname']) : 'unknown'; ?>
-                                            </small>
-                                        </td>
-                                        <td>
-                                            <?php if ($ban['country']): ?>
-                                            <span class="badge bg-info">
-                                                <i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($ban['country']); ?>
-                                            </span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?php echo date('Y-m-d H:i', strtotime($ban['ban_time'])); ?></td>
-                                        <td>
-                                            <span class="badge bg-warning"><?php echo $ban['ban_count']; ?></span>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-primary badge-custom">
+                                                    <?php echo htmlspecialchars($ban['server_name']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($ban['jail_name']); ?></td>
+                                            <td><code><?php echo htmlspecialchars($ban['ip_address']); ?></code></td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    <?php echo $ban['hostname'] ? htmlspecialchars($ban['hostname']) : 'unknown'; ?>
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <?php if ($ban['country']): ?>
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($ban['country']); ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?php echo date('Y-m-d H:i', strtotime($ban['ban_time'])); ?></td>
+                                            <td>
+                                                <span class="badge bg-warning"><?php echo $ban['ban_count']; ?></span>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
 
                                     <?php if (empty($recent_bans)): ?>
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted">No recent bans found</td>
-                                    </tr>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">No recent bans found</td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -481,34 +494,34 @@ $total_global_bans = count($global_bans);
                                 </thead>
                                 <tbody>
                                     <?php foreach ($global_bans as $ban): ?>
-                                    <tr>
-                                        <td><code><?php echo htmlspecialchars($ban['ip_address']); ?></code></td>
-                                        <td><?php echo htmlspecialchars($ban['reason']); ?></td>
-                                        <td><?php echo htmlspecialchars($ban['banned_by']); ?></td>
-                                        <td><?php echo date('Y-m-d H:i', strtotime($ban['banned_at'])); ?></td>
-                                        <td>
-                                            <?php if ($ban['permanent']): ?>
-                                            <span class="badge bg-danger">Permanent</span>
-                                            <?php else: ?>
-                                            <span class="badge bg-warning">Temporary</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($ban['permanent']): ?>
-                                            <span class="text-muted">Never</span>
-                                            <?php elseif ($ban['expires_at']): ?>
-                                            <?php echo date('Y-m-d H:i', strtotime($ban['expires_at'])); ?>
-                                            <?php else: ?>
-                                            <span class="text-muted">N/A</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td><code><?php echo htmlspecialchars($ban['ip_address']); ?></code></td>
+                                            <td><?php echo htmlspecialchars($ban['reason']); ?></td>
+                                            <td><?php echo htmlspecialchars($ban['banned_by']); ?></td>
+                                            <td><?php echo date('Y-m-d H:i', strtotime($ban['banned_at'])); ?></td>
+                                            <td>
+                                                <?php if ($ban['permanent']): ?>
+                                                    <span class="badge bg-danger">Permanent</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-warning">Temporary</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($ban['permanent']): ?>
+                                                    <span class="text-muted">Never</span>
+                                                <?php elseif ($ban['expires_at']): ?>
+                                                    <?php echo date('Y-m-d H:i', strtotime($ban['expires_at'])); ?>
+                                                <?php else: ?>
+                                                    <span class="text-muted">N/A</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
 
                                     <?php if (empty($global_bans)): ?>
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted">No global bans configured</td>
-                                    </tr>
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No global bans configured</td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -537,38 +550,38 @@ $total_global_bans = count($global_bans);
                                 </thead>
                                 <tbody>
                                     <?php foreach ($top_ips as $index => $ip): ?>
-                                    <?php
-                                    $severity = $ip['ban_count'] >= 50 ? 'danger' : ($ip['ban_count'] >= 20 ? 'warning' : 'info');
-                                    ?>
-                                    <tr>
-                                        <td><?php echo $index + 1; ?></td>
-                                        <td><code class="text-<?php echo $severity; ?>"><?php echo htmlspecialchars($ip['ip_address']); ?></code></td>
-                                        <td>
-                                            <span class="badge bg-<?php echo $severity; ?> badge-custom">
-                                                <?php echo number_format($ip['ban_count']); ?> bans
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-secondary">
-                                                <?php echo $ip['server_count']; ?> servers
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($ip['ban_count'] >= 50): ?>
-                                            <span class="badge bg-danger">High Risk</span>
-                                            <?php elseif ($ip['ban_count'] >= 20): ?>
-                                            <span class="badge bg-warning">Medium Risk</span>
-                                            <?php else: ?>
-                                            <span class="badge bg-info">Low Risk</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
+                                        <?php
+                                        $severity = $ip['ban_count'] >= 50 ? 'danger' : ($ip['ban_count'] >= 20 ? 'warning' : 'info');
+                                        ?>
+                                        <tr>
+                                            <td><?php echo $index + 1; ?></td>
+                                            <td><code class="text-<?php echo $severity; ?>"><?php echo htmlspecialchars($ip['ip_address']); ?></code></td>
+                                            <td>
+                                                <span class="badge bg-<?php echo $severity; ?> badge-custom">
+                                                    <?php echo number_format($ip['ban_count']); ?> bans
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    <?php echo $ip['server_count']; ?> servers
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?php if ($ip['ban_count'] >= 50): ?>
+                                                    <span class="badge bg-danger">High Risk</span>
+                                                <?php elseif ($ip['ban_count'] >= 20): ?>
+                                                    <span class="badge bg-warning">Medium Risk</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-info">Low Risk</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
 
                                     <?php if (empty($top_ips)): ?>
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">No ban data available</td>
-                                    </tr>
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">No ban data available</td>
+                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -595,4 +608,5 @@ $total_global_bans = count($global_bans);
         }, 30000);
     </script>
 </body>
+
 </html>

@@ -1,12 +1,9 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
+require_once('session.inc.php');
 require_once('config.inc.php');
-if (!isset($_SESSION['active']) || $_SESSION['active'] == false) {
-  header("Location: login.php");
-  exit;
-}
+
+// Check authentication with 30-minute timeout
+require_authentication(1800, 'index.php');
 require_once('engine.inc.php');
 require_once('csrf.inc.php');
 require_once('cache.inc.php');
@@ -160,7 +157,7 @@ if (!isset($socket_error)) {
       --bs-table-border-color: rgba(255, 255, 255, 0.1);
     }
 
-    .table > tbody > tr:hover {
+    .table>tbody>tr:hover {
       background-color: rgba(13, 110, 253, 0.1);
     }
 
@@ -180,13 +177,15 @@ if (!isset($socket_error)) {
       border-left: 3px solid #0d6efd;
     }
 
-    .form-control, .form-select {
+    .form-control,
+    .form-select {
       background-color: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.1);
       color: #e6edf3;
     }
 
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
       background-color: rgba(255, 255, 255, 0.08);
       border-color: #0d6efd;
       color: #e6edf3;
@@ -229,9 +228,9 @@ if (!isset($socket_error)) {
           <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['user']); ?>
         </span>
         <?php if (isset($config['use_central_db']) && $config['use_central_db']): ?>
-        <button class="btn btn-outline-info btn-sm" onclick="location.href='control.php';" title="Multi-Server Control Panel">
-          <i class="bi bi-hdd-network"></i> Control
-        </button>
+          <button class="btn btn-outline-info btn-sm" onclick="location.href='control.php';" title="Multi-Server Control Panel">
+            <i class="bi bi-hdd-network"></i> Control
+          </button>
         <?php endif; ?>
         <button class="btn btn-outline-primary btn-sm" onclick="location.href='admin.php';" title="Admin Panel">
           <i class="bi bi-gear-fill"></i> Admin
@@ -432,63 +431,63 @@ if (!isset($socket_error)) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <?php if (isset($f2b['dns_async']) && $f2b['dns_async'] === true && $f2b['usedns'] === true): ?>
-  <!-- Asynchronous Hostname Resolution -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const hostnameCells = document.querySelectorAll('.hostname-cell');
-      const resolvedIPs = new Set(); // Avoid duplicate requests
+    <!-- Asynchronous Hostname Resolution -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const hostnameCells = document.querySelectorAll('.hostname-cell');
+        const resolvedIPs = new Set(); // Avoid duplicate requests
 
-      // Process hostnames in batches for better performance
-      const batchSize = 10;
-      const delay = 100; // 100ms between batches
+        // Process hostnames in batches for better performance
+        const batchSize = 10;
+        const delay = 100; // 100ms between batches
 
-      let batch = [];
-      hostnameCells.forEach((cell, index) => {
-        batch.push(cell);
+        let batch = [];
+        hostnameCells.forEach((cell, index) => {
+          batch.push(cell);
 
-        if (batch.length === batchSize || index === hostnameCells.length - 1) {
-          setTimeout(() => {
-            processBatch(batch);
-          }, Math.floor(index / batchSize) * delay);
-          batch = [];
+          if (batch.length === batchSize || index === hostnameCells.length - 1) {
+            setTimeout(() => {
+              processBatch(batch);
+            }, Math.floor(index / batchSize) * delay);
+            batch = [];
+          }
+        });
+
+        function processBatch(cells) {
+          cells.forEach(cell => {
+            const ip = cell.getAttribute('data-ip');
+
+            // Skip if already resolved
+            if (resolvedIPs.has(ip)) {
+              return;
+            }
+            resolvedIPs.add(ip);
+
+            // Fetch hostname via AJAX
+            fetch('resolve_hostname.php?ip=' + encodeURIComponent(ip))
+              .then(response => response.json())
+              .then(data => {
+                // Update all cells with this IP
+                document.querySelectorAll('.hostname-cell[data-ip="' + ip + '"]').forEach(targetCell => {
+                  if (data.resolved && data.hostname !== ip) {
+                    targetCell.textContent = data.hostname;
+                    targetCell.classList.remove('text-muted');
+                    targetCell.classList.add('text-info');
+                  } else {
+                    targetCell.textContent = 'unknown';
+                  }
+                });
+              })
+              .catch(error => {
+                // Silently fail - keep "Loading..." or show "unknown"
+                document.querySelectorAll('.hostname-cell[data-ip="' + ip + '"]').forEach(targetCell => {
+                  targetCell.textContent = 'unknown';
+                });
+              });
+          });
         }
       });
-
-      function processBatch(cells) {
-        cells.forEach(cell => {
-          const ip = cell.getAttribute('data-ip');
-
-          // Skip if already resolved
-          if (resolvedIPs.has(ip)) {
-            return;
-          }
-          resolvedIPs.add(ip);
-
-          // Fetch hostname via AJAX
-          fetch('resolve_hostname.php?ip=' + encodeURIComponent(ip))
-            .then(response => response.json())
-            .then(data => {
-              // Update all cells with this IP
-              document.querySelectorAll('.hostname-cell[data-ip="' + ip + '"]').forEach(targetCell => {
-                if (data.resolved && data.hostname !== ip) {
-                  targetCell.textContent = data.hostname;
-                  targetCell.classList.remove('text-muted');
-                  targetCell.classList.add('text-info');
-                } else {
-                  targetCell.textContent = 'unknown';
-                }
-              });
-            })
-            .catch(error => {
-              // Silently fail - keep "Loading..." or show "unknown"
-              document.querySelectorAll('.hostname-cell[data-ip="' + ip + '"]').forEach(targetCell => {
-                targetCell.textContent = 'unknown';
-              });
-            });
-        });
-      }
-    });
-  </script>
+    </script>
   <?php endif; ?>
 </body>
 

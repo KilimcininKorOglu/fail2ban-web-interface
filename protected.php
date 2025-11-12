@@ -1,13 +1,13 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-	session_start();
+  session_start();
 }
 
 require_once('config.inc.php');
 
 if (!isset($_SESSION['active']) || $_SESSION['active'] == false) {
-	header('location:index.php');
-	exit;
+  header('location:index.php');
+  exit;
 }
 ?>
 <!DOCTYPE html>

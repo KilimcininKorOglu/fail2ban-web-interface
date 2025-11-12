@@ -7,7 +7,14 @@ function check_socket()
   // If socket check is disabled, test fail2ban-client directly
   if (isset($f2b['use_socket_check']) && $f2b['use_socket_check'] === false) {
     // Test if fail2ban-client is accessible and working
-    $test = @exec('fail2ban-client ping 2>&1', $output, $return_code);
+    $output = [];
+    $return_code = 0;
+    $test = exec('fail2ban-client ping 2>&1', $output, $return_code);
+
+    if ($return_code !== 0) {
+      error_log("Fail2Ban Engine: fail2ban-client ping failed - Return code: $return_code - Output: " . implode("\n", $output));
+    }
+
     if ($return_code === 0 && strpos($test, 'pong') !== false) {
       return 'OK';
     } else {
@@ -31,7 +38,14 @@ function list_jails()
 {
   global $f2b;
   $jails = array();
-  $erg = @exec('fail2ban-client status | grep "Jail list:" | awk -F ":" \'{print $2}\' | awk \'{$1=$1;print}\'');
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client status 2>&1 | grep "Jail list:" | awk -F ":" \'{print $2}\' | awk \'{$1=$1;print}\'', $output, $return_code);
+
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: list_jails failed - Return code: $return_code - Output: " . implode("\n", $output));
+  }
+
   $erg = explode(",", $erg);
   foreach ($erg as $i => $j) {
     $jails[trim($j)] = false;
@@ -44,18 +58,40 @@ function jail_info($jail)
 {
   global $f2b;
   $info = array();
-  $erg = @exec('fail2ban-client get ' . escapeshellarg($jail) . ' findtime ');
+
+  // Get findtime
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client get ' . escapeshellarg($jail) . ' findtime 2>&1', $output, $return_code);
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: get findtime failed for jail $jail - Return code: $return_code - Output: " . implode("\n", $output));
+  }
   if (is_numeric($erg)) {
     $info['findtime'] = 'findtime: ' . $erg;
   }
-  $erg = @exec('fail2ban-client get ' . escapeshellarg($jail) . ' bantime ');
+
+  // Get bantime
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client get ' . escapeshellarg($jail) . ' bantime 2>&1', $output, $return_code);
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: get bantime failed for jail $jail - Return code: $return_code - Output: " . implode("\n", $output));
+  }
   if (is_numeric($erg)) {
     $info['bantime'] = 'bantime: ' . $erg;
   }
-  $erg = @exec('fail2ban-client get ' . escapeshellarg($jail) . ' maxretry ');
+
+  // Get maxretry
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client get ' . escapeshellarg($jail) . ' maxretry 2>&1', $output, $return_code);
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: get maxretry failed for jail $jail - Return code: $return_code - Output: " . implode("\n", $output));
+  }
   if (is_numeric($erg)) {
     $info['maxretry'] = 'maxretry: ' . $erg;
   }
+
   return $info;
 }
 
@@ -65,7 +101,14 @@ function list_banned($jail, $skip_dns = false)
   $banned = array();
   // Validate jail name to prevent command injection
   $jail = escapeshellarg($jail);
-  $erg = @exec('fail2ban-client status ' . $jail . ' | grep "IP list:" | awk -F ":" \'{print$2}\' | awk \'{$1=$1;print}\'');
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client status ' . $jail . ' 2>&1 | grep "IP list:" | awk -F ":" \'{print$2}\' | awk \'{$1=$1;print}\'', $output, $return_code);
+
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: list_banned failed for jail $jail - Return code: $return_code - Output: " . implode("\n", $output));
+  }
+
   if ($erg != '') {
     $banned = explode(" ", $erg);
     // Skip DNS resolution if requested (for async loading)
@@ -127,7 +170,15 @@ function ban_ip($jail, $ip)
   } elseif (!filter_var($ip, FILTER_VALIDATE_IP)) {
     return 'no valid ip address';
   }
-  $erg = @exec('fail2ban-client set ' . escapeshellarg($jail) . ' banip ' . escapeshellarg($ip));
+
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client set ' . escapeshellarg($jail) . ' banip ' . escapeshellarg($ip) . ' 2>&1', $output, $return_code);
+
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: ban_ip failed for IP $ip in jail $jail - Return code: $return_code - Output: " . implode("\n", $output));
+  }
+
   if ($erg != 1) {
     return 'could not ban this ip';
   }
@@ -141,9 +192,17 @@ function unban_ip($jail, $ip)
   } elseif (!filter_var($ip, FILTER_VALIDATE_IP)) {
     return 'no valid ip address';
   }
-  $erg = @exec('fail2ban-client set ' . escapeshellarg($jail) . ' unbanip ' . escapeshellarg($ip));
+
+  $output = [];
+  $return_code = 0;
+  $erg = exec('fail2ban-client set ' . escapeshellarg($jail) . ' unbanip ' . escapeshellarg($ip) . ' 2>&1', $output, $return_code);
+
+  if ($return_code !== 0) {
+    error_log("Fail2Ban Engine: unban_ip failed for IP $ip in jail $jail - Return code: $return_code - Output: " . implode("\n", $output));
+  }
+
   if ($erg != 1) {
-    return 'could not unban this ip $erg';
+    return "could not unban this ip: $erg";
   }
   return 'OK';
 }

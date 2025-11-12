@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Database connection and helper functions for centralized fail2ban system
  */
@@ -6,7 +7,8 @@
 /**
  * Get PDO database connection
  */
-function get_db_connection() {
+function get_db_connection()
+{
     global $db_config, $config;
 
     // Check if centralized database is enabled
@@ -39,7 +41,8 @@ function get_db_connection() {
 /**
  * Get or create server ID
  */
-function get_server_id($server_name, $server_ip = null) {
+function get_server_id($server_name, $server_ip = null)
+{
     $db = get_db_connection();
     if (!$db) return null;
 
@@ -73,7 +76,8 @@ function get_server_id($server_name, $server_ip = null) {
 /**
  * Get or create jail ID
  */
-function get_jail_id($server_id, $jail_name, $jail_info = array()) {
+function get_jail_id($server_id, $jail_name, $jail_info = array())
+{
     $db = get_db_connection();
     if (!$db) return null;
 
@@ -114,7 +118,6 @@ function get_jail_id($server_id, $jail_name, $jail_info = array()) {
             $jail_info['maxretry'] ?? 5
         ]);
         return $db->lastInsertId();
-
     } catch (PDOException $e) {
         error_log("get_jail_id error: " . $e->getMessage());
         return null;
@@ -124,7 +127,8 @@ function get_jail_id($server_id, $jail_name, $jail_info = array()) {
 /**
  * Sync banned IP to database
  */
-function db_sync_banned_ip($server_id, $jail_id, $ip_address, $hostname = null, $country = null) {
+function db_sync_banned_ip($server_id, $jail_id, $ip_address, $hostname = null, $country = null)
+{
     $db = get_db_connection();
     if (!$db) return false;
 
@@ -165,7 +169,8 @@ function db_sync_banned_ip($server_id, $jail_id, $ip_address, $hostname = null, 
 /**
  * Mark IP as unbanned in database
  */
-function db_unban_ip($server_id, $jail_id, $ip_address) {
+function db_unban_ip($server_id, $jail_id, $ip_address)
+{
     $db = get_db_connection();
     if (!$db) return false;
 
@@ -186,7 +191,8 @@ function db_unban_ip($server_id, $jail_id, $ip_address) {
 /**
  * Get all banned IPs from database (for a specific server or all servers)
  */
-function db_get_banned_ips($server_id = null, $jail_name = null) {
+function db_get_banned_ips($server_id = null, $jail_name = null)
+{
     $db = get_db_connection();
     if (!$db) return array();
 
@@ -215,7 +221,6 @@ function db_get_banned_ips($server_id = null, $jail_name = null) {
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
-
     } catch (PDOException $e) {
         error_log("db_get_banned_ips error: " . $e->getMessage());
         return array();
@@ -225,7 +230,8 @@ function db_get_banned_ips($server_id = null, $jail_name = null) {
 /**
  * Get global bans that should be applied to all servers
  */
-function db_get_global_bans() {
+function db_get_global_bans()
+{
     $db = get_db_connection();
     if (!$db) return array();
 
@@ -247,7 +253,8 @@ function db_get_global_bans() {
 /**
  * Add IP to global ban list
  */
-function db_add_global_ban($ip_address, $reason, $banned_by, $permanent = false, $expires_at = null) {
+function db_add_global_ban($ip_address, $reason, $banned_by, $permanent = false, $expires_at = null)
+{
     $db = get_db_connection();
     if (!$db) return false;
 
@@ -274,7 +281,8 @@ function db_add_global_ban($ip_address, $reason, $banned_by, $permanent = false,
 /**
  * Log audit action
  */
-function db_log_action($server_id, $action_type, $ip_address, $jail_name, $performed_by, $details = null) {
+function db_log_action($server_id, $action_type, $ip_address, $jail_name, $performed_by, $details = null)
+{
     $db = get_db_connection();
     if (!$db) return false;
 
@@ -294,7 +302,8 @@ function db_log_action($server_id, $action_type, $ip_address, $jail_name, $perfo
 /**
  * Get all active servers
  */
-function db_get_servers() {
+function db_get_servers()
+{
     $db = get_db_connection();
     if (!$db) return array();
 
@@ -311,7 +320,8 @@ function db_get_servers() {
 /**
  * Get statistics for dashboard
  */
-function db_get_statistics($server_id = null, $days = 7) {
+function db_get_statistics($server_id = null, $days = 7)
+{
     $db = get_db_connection();
     if (!$db) return array();
 
