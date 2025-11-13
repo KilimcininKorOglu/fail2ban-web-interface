@@ -1,0 +1,79 @@
+# Fail2Ban Web Interface - Security Rules
+
+# Deny access to configuration files
+<FilesMatch "^(config\.json|config\.example\.json)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to all .inc.php files (include files)
+<FilesMatch "\.inc\.php$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to composer files
+<FilesMatch "^(composer\.json|composer\.lock)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to git files
+<FilesMatch "^\.git">
+    Require all denied
+</FilesMatch>
+
+# Deny access to documentation files (optional - remove if you want them accessible)
+<FilesMatch "^(README\.md|SECURITY\.md|CLAUDE\.md|database\.sql)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to vendor directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^vendor/.*$ - [F,L]
+</IfModule>
+
+# Alternative method for denying vendor directory access
+<DirectoryMatch "^.*/vendor/.*$">
+    Require all denied
+</DirectoryMatch>
+
+# Deny access to backup files
+<FilesMatch "\.(bak|backup|old|orig|save|~)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to log files
+<FilesMatch "\.log$">
+    Require all denied
+</FilesMatch>
+
+# Enable HTTPS redirect (optional - uncomment if you have SSL)
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# Security headers (optional - uncomment for additional security)
+# <IfModule mod_headers.c>
+#     # Prevent clickjacking
+#     Header set X-Frame-Options "SAMEORIGIN"
+#
+#     # XSS protection
+#     Header set X-XSS-Protection "1; mode=block"
+#
+#     # Prevent MIME type sniffing
+#     Header set X-Content-Type-Options "nosniff"
+#
+#     # Referrer policy
+#     Header set Referrer-Policy "strict-origin-when-cross-origin"
+#
+#     # Content Security Policy (adjust as needed)
+#     # Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:;"
+# </IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Custom error pages (optional)
+# ErrorDocument 403 /error403.html
+# ErrorDocument 404 /error404.html
