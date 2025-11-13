@@ -20,7 +20,7 @@
 
 // Configuration
 $config = [
-    'license_key' => getenv('MAXMIND_LICENSE_KEY') ?: 'YOUR_LICENSE_KEY_HERE',
+    'license_key' => 'YOUR_LICENSE_KEY_HERE',
     'target_dir' => __DIR__,  // Directory where .mmdb files will be stored
     'temp_dir' => sys_get_temp_dir() . '/geoip_update_' . uniqid(),
     'databases' => [
@@ -33,13 +33,15 @@ $config = [
 ];
 
 // Logging function
-function log_message($message, $level = 'INFO') {
+function log_message($message, $level = 'INFO')
+{
     $timestamp = date('Y-m-d H:i:s');
     echo "[$timestamp] [$level] $message\n";
 }
 
 // Check requirements
-function check_requirements() {
+function check_requirements()
+{
     $required_commands = ['wget', 'tar'];
 
     foreach ($required_commands as $cmd) {
@@ -58,7 +60,8 @@ function check_requirements() {
 }
 
 // Download and extract GeoIP database
-function download_database($edition, $license_key, $temp_dir, $timeout) {
+function download_database($edition, $license_key, $temp_dir, $timeout)
+{
     log_message("Downloading $edition...");
 
     $url = sprintf(
@@ -90,7 +93,8 @@ function download_database($edition, $license_key, $temp_dir, $timeout) {
 }
 
 // Find and copy .mmdb files
-function copy_mmdb_files($temp_dir, $target_dir) {
+function copy_mmdb_files($temp_dir, $target_dir)
+{
     log_message("Copying .mmdb files to target directory...");
 
     $iterator = new RecursiveIteratorIterator(
@@ -127,7 +131,8 @@ function copy_mmdb_files($temp_dir, $target_dir) {
 }
 
 // Clean up old backups
-function cleanup_old_backups($target_dir, $keep_backups) {
+function cleanup_old_backups($target_dir, $keep_backups)
+{
     log_message("Cleaning up old backups...");
 
     $backup_files = glob($target_dir . '/*.mmdb.backup.*');
@@ -147,7 +152,7 @@ function cleanup_old_backups($target_dir, $keep_backups) {
     // Sort and remove old backups for each file
     foreach ($backups_by_file as $basename => $backups) {
         // Sort by modification time (newest first)
-        usort($backups, function($a, $b) {
+        usort($backups, function ($a, $b) {
             return filemtime($b) - filemtime($a);
         });
 
@@ -163,7 +168,8 @@ function cleanup_old_backups($target_dir, $keep_backups) {
 }
 
 // Clean up temporary directory
-function cleanup_temp_dir($temp_dir) {
+function cleanup_temp_dir($temp_dir)
+{
     if (is_dir($temp_dir)) {
         log_message("Cleaning up temporary directory...");
 
@@ -262,7 +268,6 @@ try {
 
     log_message("=== GeoLite2 Database Update Completed Successfully ===");
     exit(0);
-
 } catch (Exception $e) {
     log_message("Fatal error: " . $e->getMessage(), 'ERROR');
     log_message("Stack trace: " . $e->getTraceAsString(), 'ERROR');
