@@ -120,10 +120,3 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Sample data
-INSERT INTO servers (server_name, server_ip, description) VALUES
-('web-server-1', '192.168.1.10', 'Main web server'),
-('mail-server-1', '192.168.1.11', 'Mail server'),
-('db-server-1', '192.168.1.12', 'Database server')
-ON DUPLICATE KEY UPDATE server_ip=VALUES(server_ip);

@@ -5,6 +5,7 @@ Hafif Fail2Ban veri toplama agent'ı. Yan sunucularda full web interface yerine 
 ## 🎯 Ne İşe Yarar?
 
 Agent, fail2ban çalıştıran sunucularda minimal kurulum ile:
+
 - ✅ Local banned IP'leri merkezi database'e gönderir
 - ✅ Global ban listesini alıp local fail2ban'a uygular
 - ✅ Minimal resource kullanımı (sadece PHP CLI gerekli)
@@ -23,6 +24,7 @@ sudo ./install.sh
 ```
 
 Script otomatik olarak:
+
 - ✅ PHP ve gerekli extension'ları kontrol eder
 - ✅ Agent'ı `/opt/fail2ban-agent/` altına kurar
 - ✅ Config dosyasını oluşturur
@@ -137,6 +139,7 @@ grep ERROR /var/log/fail2ban_agent.log
 ## 🔄 Ana Sunucu vs Agent
 
 ### Ana Sunucu (Full Interface)
+
 - ✅ Web interface
 - ✅ Dashboard
 - ✅ Manuel ban/unban
@@ -145,6 +148,7 @@ grep ERROR /var/log/fail2ban_agent.log
 - Gereksinimler: Apache/Nginx, PHP, MySQL client
 
 ### Yan Sunucu (Agent)
+
 - ✅ Sadece veri gönderme
 - ✅ Global ban uygulama
 - ✅ Minimal resource
@@ -219,38 +223,43 @@ sudo chown root:root /opt/fail2ban-agent/agent.conf.php
 ## 📈 Performans
 
 Agent çok hafiftir:
+
 - **Memory**: ~10 MB
 - **CPU**: Minimal (sadece sync sırasında)
 - **Disk**: Sadece log dosyası
 - **Network**: Sadece MySQL bağlantısı
 
 5 dakikalık sync süresi:
+
 - 10 jail + 100 banned IP: ~2 saniye
 - 20 jail + 500 banned IP: ~5 saniye
 
 ## 🆚 Karşılaştırma
 
-| Özellik | Full Interface | Agent Only |
-|---------|---------------|------------|
-| Web Interface | ✅ | ❌ |
-| Dashboard | ✅ | ❌ |
-| Manuel Ban/Unban | ✅ | ❌ |
-| Data Sync | ✅ | ✅ |
-| Global Ban Apply | ✅ | ✅ |
-| Resource Usage | Yüksek | Çok Düşük |
-| Setup Complexity | Orta | Çok Kolay |
+| Özellik          | Full Interface | Agent Only |
+| ---------------- | -------------- | ---------- |
+| Web Interface    | ✅             | ❌         |
+| Dashboard        | ✅             | ❌         |
+| Manuel Ban/Unban | ✅             | ❌         |
+| Data Sync        | ✅             | ✅         |
+| Global Ban Apply | ✅             | ✅         |
+| Resource Usage   | Yüksek         | Çok Düşük  |
+| Setup Complexity | Orta           | Çok Kolay  |
 
 ## 💡 Önerilen Kurulum
 
 **Küçük kurulum (2-5 sunucu):**
+
 - 1 sunucuda full interface
 - Diğerlerinde agent
 
 **Orta kurulum (5-20 sunucu):**
+
 - 1 merkezi sunucuda full interface (sadece MySQL + Web)
 - Tüm fail2ban sunucularında agent
 
 **Büyük kurulum (20+ sunucu):**
+
 - 1 merkezi dashboard sunucu (MySQL + Web)
 - 2-3 MySQL replica (yedeklilik için)
 - Tüm fail2ban sunucularında agent
