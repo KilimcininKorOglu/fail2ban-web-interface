@@ -213,7 +213,7 @@ $total_global_bans = count($global_bans);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Panel - Multi-Server Overview</title>
+    <title>Multi Server Control Panel - <?php echo htmlspecialchars($config['title']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
@@ -305,7 +305,7 @@ $total_global_bans = count($global_bans);
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
                 <i class="bi bi-hdd-network text-primary"></i>
-                <strong>Control Panel</strong>
+                <strong>Multi Server Control Panel - <?php echo htmlspecialchars($config['title']); ?></strong>
             </a>
             <div class="d-flex align-items-center gap-2">
                 <span class="navbar-text">
@@ -459,19 +459,19 @@ $total_global_bans = count($global_bans);
                                     <p class="mb-2">
                                         <i class="bi bi-key text-warning"></i>
                                         <strong>API Key:</strong>
-                                        <div class="input-group input-group-sm mt-1">
-                                            <input type="password" class="form-control form-control-sm"
-                                                   id="api_key_<?php echo $server['id']; ?>"
-                                                   value="<?php echo htmlspecialchars($server['api_key']); ?>" readonly>
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                    onclick="toggleApiKey(<?php echo $server['id']; ?>)">
-                                                <i class="bi bi-eye" id="eye_<?php echo $server['id']; ?>"></i>
-                                            </button>
-                                            <button class="btn btn-outline-primary" type="button"
-                                                    onclick="copyApiKey(<?php echo $server['id']; ?>)">
-                                                <i class="bi bi-clipboard"></i>
-                                            </button>
-                                        </div>
+                                    <div class="input-group input-group-sm mt-1">
+                                        <input type="password" class="form-control form-control-sm"
+                                            id="api_key_<?php echo $server['id']; ?>"
+                                            value="<?php echo htmlspecialchars($server['api_key']); ?>" readonly>
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            onclick="toggleApiKey(<?php echo $server['id']; ?>)">
+                                            <i class="bi bi-eye" id="eye_<?php echo $server['id']; ?>"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" type="button"
+                                            onclick="copyApiKey(<?php echo $server['id']; ?>)">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
                                     </p>
                                     <hr>
                                     <div class="row text-center mb-3">
@@ -526,21 +526,21 @@ $total_global_bans = count($global_bans);
                                         <div class="col-md-4 mb-3">
                                             <label for="server_name" class="form-label">Server Name *</label>
                                             <input type="text" class="form-control" id="server_name" name="server_name"
-                                                   placeholder="web-server-1" pattern="[a-zA-Z0-9\-_\.]+" required>
+                                                placeholder="web-server-1" pattern="[a-zA-Z0-9\-_\.]+" required>
                                             <div class="form-text">Alphanumeric, hyphens, underscores, dots only</div>
                                         </div>
 
                                         <div class="col-md-4 mb-3">
                                             <label for="server_ip" class="form-label">Server IP *</label>
                                             <input type="text" class="form-control" id="server_ip" name="server_ip"
-                                                   placeholder="192.168.1.10" required>
+                                                placeholder="192.168.1.10" required>
                                             <div class="form-text">IPv4 or IPv6 address</div>
                                         </div>
 
                                         <div class="col-md-4 mb-3">
                                             <label for="description" class="form-label">Description</label>
                                             <input type="text" class="form-control" id="description" name="description"
-                                                   placeholder="Production web server">
+                                                placeholder="Production web server">
                                             <div class="form-text">Optional server description</div>
                                         </div>
                                     </div>

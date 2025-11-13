@@ -214,7 +214,7 @@ function get_json_value($path, $default = '')
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - <?php echo htmlspecialchars($config['title']); ?></title>
+    <title>Admin - <?php echo htmlspecialchars($config['title']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -306,7 +306,7 @@ function get_json_value($path, $default = '')
         <div class="container-fluid">
             <a class="navbar-brand" href="fail2ban.php">
                 <i class="bi bi-shield-check text-primary"></i>
-                <strong><?php echo htmlspecialchars($config['title']); ?></strong>
+                <strong>Admin - <?php echo htmlspecialchars($config['title']); ?></strong>
             </a>
             <div class="d-flex align-items-center gap-2">
                 <span class="navbar-text">
