@@ -28,13 +28,8 @@
 # Deny access to vendor directory
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^vendor/.*$ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
 </IfModule>
-
-# Alternative method for denying vendor directory access
-<DirectoryMatch "^.*/vendor/.*$">
-    Require all denied
-</DirectoryMatch>
 
 # Deny access to backup files
 <FilesMatch "\.(bak|backup|old|orig|save|~)$">

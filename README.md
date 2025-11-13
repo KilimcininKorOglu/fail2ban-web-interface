@@ -109,18 +109,33 @@ sudo chmod 660 /var/run/fail2ban/fail2ban.sock
 # $f2b['use_socket_check'] = false;
 ```
 
-### 3. Web Server Güvenlik (Opsiyonel)
+### 3. Web Server Güvenlik
 
-Apache `.htaccess` ile hassas dosyaları koru:
+**⚠️ ÖNEMLİ:** Uygulama otomatik olarak bir `.htaccess` dosyası içerir. Bu dosya:
+
+- ✅ `config.json` ve `config.example.json` dosyalarını korur
+- ✅ Tüm `.inc.php` dosyalarını korur (engine.inc.php, db.inc.php, vb.)
+- ✅ Composer dosyalarını ve vendor dizinini korur
+- ✅ Dokümantasyon dosyalarını korur (README.md, SECURITY.md)
+- ✅ Backup ve log dosyalarını korur
+- ✅ Directory listing'i devre dışı bırakır
+
+**Test edin:**
+
+```bash
+# Tarayıcıdan erişmeyi deneyin - 403 Forbidden dönmeli:
+curl -I https://yourdomain.com/config.json
+curl -I https://yourdomain.com/engine.inc.php
+```
+
+**Ek IP kısıtlaması (opsiyonel):**
+`.htaccess` dosyasına ekleyin:
 
 ```apache
-<Files ~ "^(config|engine|db|cache|csrf)\.inc\.php$">
-    Require all denied
-</Files>
-
-# IP kısıtlaması (opsiyonel)
+# Sadece belirli IP'lerden erişim izni
 <RequireAll>
     Require ip 192.168.1.0/24
+    Require ip 10.0.0.0/8
 </RequireAll>
 ```
 
