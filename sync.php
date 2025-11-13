@@ -3,10 +3,15 @@
 /**
  * Sync script: Synchronizes local fail2ban data with central MySQL database
  *
- * Usage:
+ * Usage (CLI):
  *   php sync.php                    # Sync current server
  *   php sync.php --server=web-1     # Sync specific server
  *   php sync.php --apply-global     # Apply global bans to local fail2ban
+ *
+ * Usage (HTTP API):
+ *   POST /sync.php
+ *   Headers: X-API-Key: your_api_key
+ *   Body: {"action":"sync","server_name":"web-1","server_ip":"1.2.3.4","jails":[...]}
  *
  * Add to cron for automatic sync:
  *   5 * * * * /usr/bin/php /path/to/sync.php >> /var/log/fail2ban_sync.log 2>&1
@@ -16,7 +21,119 @@ require_once('config.inc.php');
 require_once('engine.inc.php');
 require_once('db.inc.php');
 
-// Check if centralized database is enabled
+// HTTP API Handler
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+    // Set JSON response header
+    header('Content-Type: application/json');
+
+    // Check API key
+    $api_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
+    $configured_api_key = $config['sync_api_key'] ?? '';
+
+    if (empty($configured_api_key) || $api_key !== $configured_api_key) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Invalid or missing API key']);
+        exit;
+    }
+
+    // Parse JSON input
+    $json_input = file_get_contents('php://input');
+    $data = json_decode($json_input, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Bad Request', 'message' => 'Invalid JSON: ' . json_last_error_msg()]);
+        exit;
+    }
+
+    $action = $data['action'] ?? '';
+
+    // Handle ping action
+    if ($action === 'ping') {
+        echo json_encode(['status' => 'ok', 'message' => 'pong', 'timestamp' => date('Y-m-d H:i:s')]);
+        exit;
+    }
+
+    // Handle sync action
+    if ($action === 'sync') {
+        $server_name = $data['server_name'] ?? '';
+        $server_ip = $data['server_ip'] ?? '';
+        $jails = $data['jails'] ?? [];
+
+        if (empty($server_name) || empty($server_ip)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Bad Request', 'message' => 'server_name and server_ip are required']);
+            exit;
+        }
+
+        try {
+            // Get or create server ID
+            $server_id = get_server_id($server_name, $server_ip);
+            if (!$server_id) {
+                throw new Exception('Could not get server ID');
+            }
+
+            $total_synced = 0;
+            $errors = [];
+
+            foreach ($jails as $jail_data) {
+                $jail_name = $jail_data['name'] ?? '';
+                $jail_info = $jail_data['info'] ?? [];
+                $banned_ips = $jail_data['banned_ips'] ?? [];
+
+                if (empty($jail_name)) {
+                    continue;
+                }
+
+                // Get or create jail ID
+                $jail_id = get_jail_id($server_id, $jail_name, $jail_info);
+                if (!$jail_id) {
+                    $errors[] = "Could not get jail ID for $jail_name";
+                    continue;
+                }
+
+                // Sync banned IPs
+                foreach ($banned_ips as $ip) {
+                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                        if (db_sync_banned_ip($server_id, $jail_id, $ip, '', '')) {
+                            $total_synced++;
+                        }
+                    }
+                }
+            }
+
+            $response = [
+                'status' => 'success',
+                'message' => 'Data synced successfully',
+                'server_id' => $server_id,
+                'server_name' => $server_name,
+                'jails_processed' => count($jails),
+                'ips_synced' => $total_synced,
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
+
+            if (!empty($errors)) {
+                $response['warnings'] = $errors;
+            }
+
+            http_response_code(200);
+            echo json_encode($response);
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Server Error', 'message' => $e->getMessage()]);
+            exit;
+        }
+    }
+
+    // Unknown action
+    http_response_code(400);
+    echo json_encode(['error' => 'Bad Request', 'message' => 'Unknown action: ' . $action]);
+    exit;
+}
+
+// Check if centralized database is enabled (for CLI mode)
 if (!isset($config['use_central_db']) || $config['use_central_db'] === false) {
     die("Error: Centralized database is not enabled. Set \$config['use_central_db'] = true in config.inc.php\n");
 }
