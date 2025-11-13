@@ -28,6 +28,81 @@ require_once('db.inc.php');
 $error_message = '';
 $success_message = '';
 
+// Handle server registration
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Verify CSRF token
+    if (!csrf_verify()) {
+        $error_message = 'CSRF token validation failed';
+    } else {
+        $action = $_POST['action'];
+
+        if ($action === 'add_server') {
+            $server_name = trim($_POST['server_name'] ?? '');
+            $server_ip = trim($_POST['server_ip'] ?? '');
+            $description = trim($_POST['description'] ?? '');
+
+            // Validation
+            if (empty($server_name) || empty($server_ip)) {
+                $error_message = 'Server name and IP are required';
+            } elseif (!filter_var($server_ip, FILTER_VALIDATE_IP)) {
+                $error_message = 'Invalid IP address format';
+            } elseif (!preg_match('/^[a-zA-Z0-9\-_\.]+$/', $server_name)) {
+                $error_message = 'Server name can only contain alphanumeric characters, hyphens, underscores and dots';
+            } else {
+                try {
+                    $db = get_db_connection();
+
+                    // Generate secure API key (64 hex characters = 32 bytes)
+                    $api_key = bin2hex(random_bytes(32));
+
+                    // Insert server
+                    $stmt = $db->prepare("INSERT INTO servers (server_name, server_ip, api_key, description) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$server_name, $server_ip, $api_key, $description]);
+
+                    $success_message = 'Server registered successfully! API Key: ' . htmlspecialchars($api_key);
+                } catch (PDOException $e) {
+                    if ($e->getCode() == 23000) { // Duplicate entry
+                        $error_message = 'Server name or IP already exists';
+                    } else {
+                        $error_message = 'Database error: ' . htmlspecialchars($e->getMessage());
+                    }
+                }
+            }
+        } elseif ($action === 'delete_server') {
+            $server_id = intval($_POST['server_id'] ?? 0);
+
+            if ($server_id > 0) {
+                try {
+                    $db = get_db_connection();
+                    $stmt = $db->prepare("DELETE FROM servers WHERE id = ?");
+                    $stmt->execute([$server_id]);
+                    $success_message = 'Server deleted successfully';
+                } catch (PDOException $e) {
+                    $error_message = 'Failed to delete server: ' . htmlspecialchars($e->getMessage());
+                }
+            }
+        } elseif ($action === 'regenerate_api_key') {
+            $server_id = intval($_POST['server_id'] ?? 0);
+
+            if ($server_id > 0) {
+                try {
+                    $db = get_db_connection();
+
+                    // Generate new API key
+                    $api_key = bin2hex(random_bytes(32));
+
+                    $stmt = $db->prepare("UPDATE servers SET api_key = ? WHERE id = ?");
+                    $stmt->execute([$api_key, $server_id]);
+
+                    $success_message = 'API Key regenerated successfully! New API Key: ' . htmlspecialchars($api_key);
+                } catch (PDOException $e) {
+                    $error_message = 'Failed to regenerate API key: ' . htmlspecialchars($e->getMessage());
+                }
+            }
+        }
+    }
+}
+
 // Get database connection
 try {
     $db = get_db_connection();
@@ -381,8 +456,25 @@ $total_global_bans = count($global_bans);
                                             <span class="text-muted">Never</span>
                                         <?php endif; ?>
                                     </p>
+                                    <p class="mb-2">
+                                        <i class="bi bi-key text-warning"></i>
+                                        <strong>API Key:</strong>
+                                        <div class="input-group input-group-sm mt-1">
+                                            <input type="password" class="form-control form-control-sm"
+                                                   id="api_key_<?php echo $server['id']; ?>"
+                                                   value="<?php echo htmlspecialchars($server['api_key']); ?>" readonly>
+                                            <button class="btn btn-outline-secondary" type="button"
+                                                    onclick="toggleApiKey(<?php echo $server['id']; ?>)">
+                                                <i class="bi bi-eye" id="eye_<?php echo $server['id']; ?>"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" type="button"
+                                                    onclick="copyApiKey(<?php echo $server['id']; ?>)">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </div>
+                                    </p>
                                     <hr>
-                                    <div class="row text-center">
+                                    <div class="row text-center mb-3">
                                         <div class="col-4">
                                             <div class="text-primary" style="font-size: 1.5rem;"><?php echo $stats['jail_count']; ?></div>
                                             <small class="text-muted">Jails</small>
@@ -396,16 +488,76 @@ $total_global_bans = count($global_bans);
                                             <small class="text-muted">Total</small>
                                         </div>
                                     </div>
+                                    <div class="d-flex gap-2">
+                                        <form method="POST" class="flex-fill" onsubmit="return confirm('Regenerate API key? This will break existing agent connections!');">
+                                            <?php echo csrf_token_field(); ?>
+                                            <input type="hidden" name="action" value="regenerate_api_key">
+                                            <input type="hidden" name="server_id" value="<?php echo $server['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-warning w-100">
+                                                <i class="bi bi-arrow-clockwise"></i> Regen Key
+                                            </button>
+                                        </form>
+                                        <form method="POST" class="flex-fill" onsubmit="return confirm('Delete this server and all its data?');">
+                                            <?php echo csrf_token_field(); ?>
+                                            <input type="hidden" name="action" value="delete_server">
+                                            <input type="hidden" name="server_id" value="<?php echo $server['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger w-100">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
 
+                    <!-- Add Server Card -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card server-card" style="border: 2px dashed rgba(102, 126, 234, 0.5);">
+                            <div class="card-header bg-primary bg-opacity-10">
+                                <strong><i class="bi bi-plus-circle"></i> Register New Server</strong>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="control.php">
+                                    <?php echo csrf_token_field(); ?>
+                                    <input type="hidden" name="action" value="add_server">
+
+                                    <div class="mb-3">
+                                        <label for="server_name" class="form-label">Server Name *</label>
+                                        <input type="text" class="form-control" id="server_name" name="server_name"
+                                               placeholder="web-server-1" pattern="[a-zA-Z0-9\-_\.]+" required>
+                                        <div class="form-text">Alphanumeric, hyphens, underscores, dots only</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="server_ip" class="form-label">Server IP *</label>
+                                        <input type="text" class="form-control" id="server_ip" name="server_ip"
+                                               placeholder="192.168.1.10" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <textarea class="form-control" id="description" name="description"
+                                                  rows="2" placeholder="Production web server"></textarea>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-plus-circle"></i> Register Server
+                                    </button>
+                                </form>
+                                <hr>
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i> API key will be automatically generated
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
                     <?php if (empty($servers)): ?>
                         <div class="col-12">
                             <div class="alert alert-info">
                                 <i class="bi bi-info-circle"></i> No servers found in database.
-                                Servers will appear here automatically when agents sync data.
+                                Servers will appear here automatically when agents sync data or you can register a server manually above.
                             </div>
                         </div>
                     <?php endif; ?>
@@ -606,6 +758,43 @@ $total_global_bans = count($global_bans);
         setTimeout(function() {
             location.reload();
         }, 30000);
+
+        // Toggle API key visibility
+        function toggleApiKey(serverId) {
+            const input = document.getElementById('api_key_' + serverId);
+            const icon = document.getElementById('eye_' + serverId);
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+
+        // Copy API key to clipboard
+        function copyApiKey(serverId) {
+            const input = document.getElementById('api_key_' + serverId);
+            const value = input.value;
+
+            navigator.clipboard.writeText(value).then(function() {
+                // Show success feedback
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i>';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-outline-primary');
+
+                setTimeout(function() {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-primary');
+                }, 2000);
+            }).catch(function(err) {
+                alert('Failed to copy: ' + err);
+            });
+        }
     </script>
 </body>
 

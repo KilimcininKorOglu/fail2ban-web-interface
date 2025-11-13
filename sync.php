@@ -26,13 +26,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['CONTENT_TYPE']) &&
     // Set JSON response header
     header('Content-Type: application/json');
 
-    // Check API key
+    // Check API key from database
     $api_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
-    $configured_api_key = $config['sync_api_key'] ?? '';
 
-    if (empty($configured_api_key) || $api_key !== $configured_api_key) {
+    if (empty($api_key)) {
         http_response_code(401);
-        echo json_encode(['error' => 'Unauthorized', 'message' => 'Invalid or missing API key']);
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Missing API key']);
+        exit;
+    }
+
+    // Validate API key format (64 hex characters)
+    if (!preg_match('/^[a-f0-9]{64}$/i', $api_key)) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Invalid API key format']);
+        exit;
+    }
+
+    // Verify API key exists in database
+    try {
+        $db = get_db_connection();
+        if (!$db) {
+            throw new Exception('Database connection failed');
+        }
+
+        $stmt = $db->prepare("SELECT id, server_name, is_active FROM servers WHERE api_key = ? LIMIT 1");
+        $stmt->execute([$api_key]);
+        $server_auth = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$server_auth) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized', 'message' => 'Invalid API key']);
+            exit;
+        }
+
+        if ($server_auth['is_active'] != 1) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Forbidden', 'message' => 'Server is not active']);
+            exit;
+        }
+
+        // Store authenticated server info for use later
+        $authenticated_server_id = $server_auth['id'];
+        $authenticated_server_name = $server_auth['server_name'];
+
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Server Error', 'message' => 'Authentication failed: ' . $e->getMessage()]);
         exit;
     }
 
@@ -50,7 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['CONTENT_TYPE']) &&
 
     // Handle ping action
     if ($action === 'ping') {
-        echo json_encode(['status' => 'ok', 'message' => 'pong', 'timestamp' => date('Y-m-d H:i:s')]);
+        echo json_encode([
+            'status' => 'ok',
+            'message' => 'pong',
+            'server_id' => $authenticated_server_id,
+            'server_name' => $authenticated_server_name,
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
         exit;
     }
 
@@ -67,11 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['CONTENT_TYPE']) &&
         }
 
         try {
-            // Get or create server ID
-            $server_id = get_server_id($server_name, $server_ip);
-            if (!$server_id) {
-                throw new Exception('Could not get server ID');
-            }
+            // Use authenticated server ID (already verified via API key)
+            $server_id = $authenticated_server_id;
+
+            // Update server IP if changed
+            $stmt = $db->prepare("UPDATE servers SET server_ip = ?, last_sync = NOW() WHERE id = ?");
+            $stmt->execute([$server_ip, $server_id]);
 
             $total_synced = 0;
             $errors = [];
