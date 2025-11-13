@@ -9,13 +9,15 @@ CREATE TABLE IF NOT EXISTS servers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     server_name VARCHAR(100) NOT NULL UNIQUE,
     server_ip VARCHAR(45) NOT NULL,
+    api_key VARCHAR(64) NOT NULL UNIQUE COMMENT 'API key for agent authentication',
     description TEXT,
     is_active TINYINT(1) DEFAULT 1,
     last_sync TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_server_name (server_name),
-    INDEX idx_is_active (is_active)
+    INDEX idx_is_active (is_active),
+    INDEX idx_api_key (api_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Jails table: Track jails across all servers
