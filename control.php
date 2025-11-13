@@ -103,7 +103,7 @@ try {
 // Fetch global bans
 $global_bans = [];
 try {
-    $stmt = $db->query("SELECT * FROM global_bans WHERE is_active = 1 ORDER BY banned_at DESC");
+    $stmt = $db->query("SELECT * FROM global_bans WHERE is_active = 1 ORDER BY ban_time DESC");
     $global_bans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $error_message .= ' Failed to fetch global bans: ' . $e->getMessage();
@@ -498,7 +498,7 @@ $total_global_bans = count($global_bans);
                                             <td><code><?php echo htmlspecialchars($ban['ip_address']); ?></code></td>
                                             <td><?php echo htmlspecialchars($ban['reason']); ?></td>
                                             <td><?php echo htmlspecialchars($ban['banned_by']); ?></td>
-                                            <td><?php echo date('Y-m-d H:i', strtotime($ban['banned_at'])); ?></td>
+                                            <td><?php echo date('Y-m-d H:i', strtotime($ban['ban_time'])); ?></td>
                                             <td>
                                                 <?php if ($ban['permanent']): ?>
                                                     <span class="badge bg-danger">Permanent</span>
