@@ -214,25 +214,33 @@ function get_json_value($path, $default = '')
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Fail2Ban</title>
+    <title>Admin Panel - <?php echo htmlspecialchars($config['title']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d1117 0%, #1c2333 100%);
             min-height: 100vh;
+            color: #e6edf3;
         }
 
-        .admin-container {
-            max-width: 1200px;
-            margin: 2rem auto;
+        .navbar {
+            background: rgba(13, 17, 23, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            background: rgba(13, 110, 253, 0.1);
+            border-bottom: 1px solid rgba(13, 110, 253, 0.3);
+            font-weight: 600;
         }
 
         .form-label {
@@ -241,10 +249,30 @@ function get_json_value($path, $default = '')
         }
 
         .section-header {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(13, 110, 253, 0.05);
             padding: 1rem;
             margin: -1rem -1rem 1rem -1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(13, 110, 253, 0.2);
+        }
+
+        .form-control,
+        .form-select {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #e6edf3;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: #0d6efd;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .form-select option {
+            background-color: #1c2333;
+            color: #e6edf3;
         }
 
         .test-result {
@@ -273,16 +301,33 @@ function get_json_value($path, $default = '')
 </head>
 
 <body>
-    <div class="admin-container">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="text-white">
-                <i class="bi bi-gear-fill"></i> Admin Panel
-            </h1>
-            <a href="fail2ban.php" class="btn btn-outline-light">
-                <i class="bi bi-arrow-left"></i> Back to Dashboard
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="fail2ban.php">
+                <i class="bi bi-shield-check text-primary"></i>
+                <strong><?php echo htmlspecialchars($config['title']); ?></strong>
             </a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="navbar-text">
+                    <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['user']); ?>
+                </span>
+                <button class="btn btn-outline-info btn-sm" onclick="location.href='fail2ban.php';" title="Dashboard">
+                    <i class="bi bi-house-fill"></i> Dashboard
+                </button>
+                <?php if (isset($config['use_central_db']) && $config['use_central_db']): ?>
+                    <button class="btn btn-outline-info btn-sm" onclick="location.href='control.php';" title="Multi-Server Control Panel">
+                        <i class="bi bi-hdd-network"></i> Control
+                    </button>
+                <?php endif; ?>
+                <button class="btn btn-outline-danger btn-sm" onclick="location.href='logout.php';">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </div>
         </div>
+    </nav>
+
+    <div class="container-fluid">
 
         <!-- Messages -->
         <?php if ($success_message): ?>
