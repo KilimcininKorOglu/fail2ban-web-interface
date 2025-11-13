@@ -76,7 +76,7 @@ if [ $HELP -eq 1 ]; then
     echo ""
     echo "Options:"
     echo "  --test            Test configuration and connectivity"
-    echo "  --apply-global    Apply global bans from server (not implemented yet)"
+    echo "  --apply-global    Apply global bans from server to local fail2ban"
     echo "  --help            Show this help"
     exit 0
 fi
@@ -162,7 +162,98 @@ if [ $TEST_MODE -eq 1 ]; then
     exit 0
 fi
 
-# Main execution
+# Apply global bans mode
+if [ $APPLY_GLOBAL -eq 1 ]; then
+    log_message "Starting Fail2Ban Bash Agent: $SERVER_NAME (Apply Global Bans Mode)"
+
+    # Check fail2ban
+    if ! check_fail2ban; then
+        log_message "ERROR: Fail2ban not accessible"
+        exit 1
+    fi
+
+    # Get global bans from server
+    log_message "Fetching global bans from server..."
+
+    RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X POST \
+        -H "Content-Type: application/json" \
+        -H "X-API-Key: $API_KEY" \
+        -d '{"action":"get_global_bans"}' \
+        "$SYNC_URL" 2>&1)
+
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    RESPONSE_BODY=$(echo "$RESPONSE" | sed '$d')
+
+    if [ "$HTTP_CODE" != "200" ]; then
+        log_message "ERROR: Failed to fetch global bans (HTTP $HTTP_CODE)"
+        if [ -n "$RESPONSE_BODY" ]; then
+            log_message "Error response: $RESPONSE_BODY"
+        fi
+        exit 1
+    fi
+
+    # Parse JSON response
+    GLOBAL_BANS_COUNT=$(echo "$RESPONSE_BODY" | grep -o '"count":[0-9]*' | cut -d':' -f2)
+
+    if [ -z "$GLOBAL_BANS_COUNT" ] || [ "$GLOBAL_BANS_COUNT" -eq 0 ]; then
+        log_message "No global bans found"
+        exit 0
+    fi
+
+    log_message "Found $GLOBAL_BANS_COUNT global bans to apply"
+
+    # Get list of jails
+    JAILS=$(get_jails)
+    if [ -z "$JAILS" ]; then
+        log_message "ERROR: No jails found to apply global bans"
+        exit 1
+    fi
+
+    JAIL_COUNT=$(echo "$JAILS" | wc -l)
+    log_message "Found $JAIL_COUNT jails"
+
+    # Extract IPs from JSON (simple extraction)
+    IPS=$(echo "$RESPONSE_BODY" | grep -o '"ip_address":"[^"]*"' | cut -d'"' -f4)
+
+    TOTAL_APPLIED=0
+    TOTAL_ERRORS=0
+
+    # Apply each IP to all jails
+    while IFS= read -r ip; do
+        if [ -z "$ip" ]; then
+            continue
+        fi
+
+        log_message "Applying global ban for: $ip"
+
+        while IFS= read -r jail; do
+            if [ -z "$jail" ]; then
+                continue
+            fi
+
+            # Try to ban IP
+            if fail2ban-client set "$jail" banip "$ip" &>/dev/null; then
+                log_message "  ✓ Applied to jail: $jail"
+                TOTAL_APPLIED=$((TOTAL_APPLIED + 1))
+            else
+                # IP might already be banned, which is OK
+                # Only count as error if it's not already banned
+                if ! fail2ban-client status "$jail" 2>/dev/null | grep -q "$ip"; then
+                    log_message "  ✗ Failed to apply to jail: $jail"
+                    TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+                fi
+            fi
+        done <<< "$JAILS"
+
+    done <<< "$IPS"
+
+    log_message "Global bans applied: $TOTAL_APPLIED successful, $TOTAL_ERRORS errors"
+    log_message "Apply global bans completed successfully"
+    exit 0
+fi
+
+# Main execution (sync mode)
 log_message "Starting Fail2Ban Bash Agent: $SERVER_NAME"
 
 # Check fail2ban

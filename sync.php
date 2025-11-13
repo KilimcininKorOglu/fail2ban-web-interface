@@ -99,6 +99,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['CONTENT_TYPE']) &&
         exit;
     }
 
+    // Handle get_global_bans action
+    if ($action === 'get_global_bans') {
+        try {
+            $stmt = $db->prepare("
+                SELECT ip_address, reason, ban_time, permanent, expires_at
+                FROM global_bans
+                WHERE is_active = 1
+                AND (permanent = 1 OR expires_at IS NULL OR expires_at > NOW())
+                ORDER BY ban_time DESC
+            ");
+            $stmt->execute();
+            $global_bans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Global bans retrieved successfully',
+                'server_id' => $authenticated_server_id,
+                'server_name' => $authenticated_server_name,
+                'global_bans' => $global_bans,
+                'count' => count($global_bans),
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Server Error', 'message' => $e->getMessage()]);
+            exit;
+        }
+    }
+
     // Handle sync action
     if ($action === 'sync') {
         $server_name = $data['server_name'] ?? '';
