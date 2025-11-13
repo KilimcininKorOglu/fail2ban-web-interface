@@ -115,7 +115,7 @@ if (!isset($socket_error)) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Fail2Ban Web Interface">
-  <title>Fail2Ban Dashboard - <?php echo htmlspecialchars($config['title']); ?></title>
+  <title>Dashboard - <?php echo htmlspecialchars($config['title']); ?></title>
 
   <!-- Bootstrap 5.3 with dark mode -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -221,7 +221,7 @@ if (!isset($socket_error)) {
     <div class="container-fluid">
       <a class="navbar-brand" href="#">
         <i class="bi bi-shield-check text-primary"></i>
-        <strong>Fail2Ban Dashboard - <?php echo htmlspecialchars($config['title']); ?></strong>
+        <strong>Dashboard - <?php echo htmlspecialchars($config['title']); ?></strong>
       </a>
       <div class="d-flex align-items-center gap-2">
         <span class="navbar-text">
