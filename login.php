@@ -144,9 +144,9 @@ require_once('config.inc.php'); ?>
 
           <!-- Remember me -->
           <div class="form-check text-start mb-4">
-            <input class="form-check-input" type="checkbox" value="remember-me" id="rememberCheck">
+            <input class="form-check-input" type="checkbox" name="remember_me" value="1" id="rememberCheck">
             <label class="form-check-label" for="rememberCheck">
-              Remember me
+              Remember me (30 days)
             </label>
           </div>
 

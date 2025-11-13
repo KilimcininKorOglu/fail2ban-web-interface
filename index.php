@@ -4,7 +4,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once('config.inc.php');
+require_once('session.inc.php');
 require_once('ratelimit.inc.php');
+
+// Check remember me token first
+if (check_remember_me()) {
+    // User was automatically logged in via remember me
+    header("Location: fail2ban.php");
+    exit;
+}
 
 // Initialize login error message
 $login_error = '';
@@ -55,6 +63,47 @@ if (isset($_POST['username']) && isset($_POST['password'])) {
             $_SESSION['method'] = 'native';
             $_SESSION['user'] = $username;
             $_SESSION['login_time'] = time();
+
+            // Handle "Remember Me" functionality
+            if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
+                // Generate secure random token
+                $token = bin2hex(random_bytes(32));
+                $token_hash = hash('sha256', $token);
+
+                // Set cookie for 30 days (2592000 seconds)
+                $expire = time() + (30 * 24 * 60 * 60);
+
+                // Store hashed token in session for validation
+                $_SESSION['remember_token'] = $token_hash;
+                $_SESSION['remember_expires'] = $expire;
+
+                // Set secure cookie with httponly and samesite flags
+                setcookie(
+                    'remember_token',
+                    $token,
+                    [
+                        'expires' => $expire,
+                        'path' => '/',
+                        'domain' => '',
+                        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+                        'httponly' => true,
+                        'samesite' => 'Strict'
+                    ]
+                );
+                setcookie(
+                    'remember_user',
+                    $username,
+                    [
+                        'expires' => $expire,
+                        'path' => '/',
+                        'domain' => '',
+                        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+                        'httponly' => true,
+                        'samesite' => 'Strict'
+                    ]
+                );
+            }
+
             break;
         }
     }
