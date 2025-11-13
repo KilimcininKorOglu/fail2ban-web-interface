@@ -1,724 +1,562 @@
 # Fail2Ban Web Interface
 
-Modern, güvenli ve performanslı Fail2Ban yönetim arayüzü. Bootstrap 5 dark mode, CSRF koruması, caching ve opsiyonel çoklu sunucu merkezi yönetimi ile.
+Modern, secure, and high-performance web administration interface for Fail2Ban with optional centralized multi-server management. Features Bootstrap 5 dark mode, JSON-based configuration, comprehensive security protections, and production-ready architecture.
 
 ![PHP Version](https://img.shields.io/badge/PHP-%3E%3D7.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Security](https://img.shields.io/badge/security-hardened-green)
 
-## 📑 İçindekiler
+## 📑 Table of Contents
 
-- [Özellikler](#-özellikler)
-- [Hızlı Başlangıç](#-hızlı-başlangıç)
-- [Gereksinimler](#-gereksinimler)
-- [Kurulum](#-kurulum)
-- [Konfigürasyon](#-konfigürasyon)
-- [Kullanım](#-kullanım)
-- [Çoklu Sunucu Kurulumu](#-çoklu-sunucu-kurulumu)
-- [Güvenlik](#-güvenlik)
-- [Performans](#-performans)
-- [Sorun Giderme](#-sorun-giderme)
-- [Bakım](#-bakım)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Multi-Server Setup](#-multi-server-setup)
+- [Security](#-security)
+- [Performance](#-performance)
+- [Maintenance](#-maintenance)
+- [Troubleshooting](#-troubleshooting)
+- [Architecture](#-architecture)
 
-## ✨ Özellikler
+## ✨ Features
 
-### Temel Özellikler
+### Core Features
 
-- 🎨 **Modern UI**: Bootstrap 5.3 dark mode, glass-morphism tasarım
-- 🔒 **Güvenlik**: CSRF koruması, XSS koruması, bcrypt password hashing
-- ⚡ **Performans**: APCu/File hybrid caching, DNS lookup devre dışı
-- 🌍 **GeoIP**: IP'lerin ülke bilgisi (opsiyonel)
-- 📊 **Dashboard**: Tüm jail'leri ve banned IP'leri tek ekranda görüntüle
+- 🎨 **Modern UI**: Bootstrap 5.3 dark mode with glass-morphism design
+- 🔐 **Security Hardened**:
+  - CSRF protection (token-based)
+  - XSS protection (output encoding)
+  - Command injection prevention
+  - Bcrypt password hashing
+  - Session timeout & regeneration
+  - Brute-force protection (rate limiting)
+  - Remember me with secure tokens
+- ⚡ **High Performance**:
+  - Hybrid caching (APCu with file fallback)
+  - DNS lookups disabled by default
+  - Optimized database queries
+- 🌍 **GeoIP Support**: IP geolocation with auto-updater script (optional)
+- 📊 **Dashboard**: View all jails and banned IPs in one place
+- ⚙️ **JSON Configuration**: Secure, non-executable configuration format
 
-### İleri Özellikler (Opsiyonel)
+### Advanced Features (Optional)
 
-- 🖥️ **Multi-Server**: Birden fazla bağımsız fail2ban sunucusunu merkezi MySQL ile yönet
-- 🌐 **Global Ban**: Bir IP'yi tüm sunucularda otomatik olarak banla
-- 📝 **Audit Log**: Tüm ban/unban işlemlerinin detaylı kaydı
-- 📈 **İstatistikler**: Server bazlı ve global istatistikler
-- 🔄 **Auto Sync**: Cron ile otomatik senkronizasyon
+- 🖥️ **Multi-Server Management**: Centralized MySQL-based monitoring
+- 🌐 **Global Ban List**: Ban IPs across all servers simultaneously
+- 🔑 **Server Management Panel**: Web-based API key management
+- 🔄 **Bidirectional Sync**: Upload bans and download global bans
+- 📝 **Audit Logging**: Detailed tracking of all ban/unban actions
+- 📈 **Statistics**: Server-based and global analytics
+- 🚀 **Lightweight Agent**: Bash or PHP agent options for remote servers
+- 🔧 **Admin Panel**: Web-based configuration management
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### Tek Sunucu Kurulumu (En Basit)
+### Single Server Setup (Simplest)
 
 ```bash
-# 1. Dosyaları kopyala
+# 1. Copy files to web directory
 sudo cp -r fail2ban/ /var/www/html/
 cd /var/www/html/fail2ban/
 
-# 2. Config dosyasını oluştur
-cp config.example.php config.inc.php
-nano config.inc.php
+# 2. Create configuration file
+cp config.example.json config.json
+nano config.json
 
-# 3. Şifre hash'i oluştur
+# 3. Generate password hash
 php -r "echo password_hash('your_password', PASSWORD_DEFAULT) . PHP_EOL;"
 
-# 4. config.inc.php'de şifreyi güncelle
-# $login['native'] = array(
-#     array('user' => 'admin', 'password_hash' => '$2y$10$...')
-# );
+# 4. Update config.json with the hash
+# Edit authentication.users[0].password_hash
 
-# 5. Fail2ban socket izinlerini ayarla
+# 5. Set fail2ban socket permissions
 sudo chmod 777 /var/run/fail2ban/fail2ban.sock
 
-# 6. Tarayıcıdan erişim
-# http://your-server/fail2ban/
+# 6. Access via browser
+# https://your-server/fail2ban/
 ```
 
-## 📋 Gereksinimler
+## 📋 Requirements
 
-### Zorunlu
+### Mandatory
 
 - PHP >= 7.2
-- fail2ban kurulu ve çalışıyor
+- fail2ban installed and running
 - Apache/Nginx web server
-- PHP exec() fonksiyonu aktif
+- PHP exec() function enabled
+- wget and tar (for GeoIP updates)
 
-### Opsiyonel
+### Optional
 
-- php-apcu (caching için)
-- php-mysql + MySQL (çoklu sunucu için)
-- composer (GeoIP için)
+- php-apcu (for caching)
+- php-mysql + MySQL (for multi-server mode)
+- composer (for GeoIP support)
 
-## 📦 Kurulum
+## 📦 Installation
 
-### 1. PHP Bağımlılıkları
+### 1. Install PHP Dependencies
 
 ```bash
-# APCu (performans için önerilir)
+# APCu (recommended for performance)
 sudo apt-get install php-apcu
 
-# MySQL (sadece çoklu sunucu için)
+# MySQL (only for multi-server setup)
 sudo apt-get install php-mysql
 
-# GeoIP (opsiyonel)
+# GeoIP (optional)
 composer install
 ```
 
-### 2. Fail2ban İzinleri
+### 2. Configure Fail2ban Permissions
+
+Choose one of three options:
 
 ```bash
-# Seçenek 1: Socket'e direkt erişim (en kolay)
+# Option 1: Direct socket access (easiest)
 sudo chmod 777 /var/run/fail2ban/fail2ban.sock
 
-# Seçenek 2: Grup izni (daha güvenli)
+# Option 2: Group permissions (more secure)
 sudo usermod -a -G fail2ban www-data
 sudo chmod 660 /var/run/fail2ban/fail2ban.sock
+sudo systemctl restart apache2
 
-# Seçenek 3: fail2ban-client kullan (config.inc.php'de)
-# $f2b['use_socket_check'] = false;
+# Option 3: Use fail2ban-client (set in config.json)
+# "use_socket_check": false
 ```
 
-### 3. Web Server Güvenlik
+### 3. Web Server Security
 
-**⚠️ ÖNEMLİ:** Uygulama otomatik olarak bir `.htaccess` dosyası içerir. Bu dosya:
+**⚠️ IMPORTANT:** The application includes `.htaccess` for Apache that automatically protects:
 
-- ✅ `config.json` ve `config.example.json` dosyalarını korur
-- ✅ Tüm `.inc.php` dosyalarını korur (engine.inc.php, db.inc.php, vb.)
-- ✅ Composer dosyalarını ve vendor dizinini korur
-- ✅ Dokümantasyon dosyalarını korur (README.md, SECURITY.md)
-- ✅ Backup ve log dosyalarını korur
-- ✅ Directory listing'i devre dışı bırakır
+- ✅ Configuration files (config.json, config.example.json)
+- ✅ Include files (*.inc.php)
+- ✅ Composer files and vendor directory
+- ✅ Documentation files (README.md, CLAUDE.md, *.sql)
+- ✅ Backup and log files
+- ✅ Disables directory listing
 
-**Test edin:**
+**Test protection:**
 
 ```bash
-# Tarayıcıdan erişmeyi deneyin - 403 Forbidden dönmeli:
+# These should return 403 Forbidden:
 curl -I https://yourdomain.com/config.json
 curl -I https://yourdomain.com/engine.inc.php
 ```
 
-**Ek IP kısıtlaması (opsiyonel):**
-`.htaccess` dosyasına ekleyin:
+**Additional IP restrictions (optional):**
+
+Add to `.htaccess`:
 
 ```apache
-# Sadece belirli IP'lerden erişim izni
 <RequireAll>
     Require ip 192.168.1.0/24
     Require ip 10.0.0.0/8
 </RequireAll>
 ```
 
-## ⚙️ Konfigürasyon
+## ⚙️ Configuration
 
-### Temel Ayarlar (config.inc.php)
+### JSON-Based Configuration (config.json)
 
-```php
-// Environment (production'da mutlaka değiştir)
-$config['environment'] = 'production';
-
-// Application title
-$config['title'] = 'Fail2Ban Dashboard';
-
-// Güvenli şifre (hash oluştur)
-php -r "echo password_hash('your_password', PASSWORD_DEFAULT);"
-
-$login['native'] = array(
-    array(
-        'user' => 'admin',
-        'password_hash' => '$2y$10$...'  // Yukarıdaki komuttan çıkan hash
-    )
-);
-
-// Fail2ban ayarları
-$f2b['socket'] = '/var/run/fail2ban/fail2ban.sock';
-$f2b['use_socket_check'] = false;  // Socket erişim sorunu varsa false
-$f2b['usedns'] = false;            // Performans için false önerilir
-$f2b['noempt'] = true;             // Boş jail'leri gizle
-$f2b['jainfo'] = true;             // Jail bilgilerini göster
-```
-
-### Tek Sunucu Modu (Default)
-
-```php
-// Single server setup
-$config['server_name'] = 'my-server';
-$config['server_ip'] = '127.0.0.1';
-$config['use_central_db'] = false;  // Merkezi DB kullanma
-```
-
-## 📊 Kullanım
-
-### Ban İşlemi
-
-1. Dashboard'dan "Manually Ban IP Address" bölümüne git
-2. Jail seç
-3. IP adresini gir
-4. "Ban IP" butonuna tıkla
-
-### Unban İşlemi
-
-1. Banned IPs listesinden IP'yi bul
-2. "Unban" butonuna tıkla
-3. Onay ver
-
-### Refresh
-
-- Dashboard üst kısmındaki "Refresh" butonuna tıkla
-- Cache temizlenir ve güncel veriler çekilir
-
----
-
-## 🖥️ Çoklu Sunucu Kurulumu
-
-Birden fazla bağımsız fail2ban sunucusunu merkezi bir MySQL veritabanı ile yönetin.
-
-### 📦 İki Kurulum Seçeneği
-
-#### Seçenek 1: Lightweight Agent (ÖNERİLEN)
-
-- ✅ Yan sunucularda sadece agent çalışır (PHP CLI yeterli)
-- ✅ Web server gerekmez
-- ✅ Minimal resource kullanımı
-- ✅ Kolay kurulum
-- [Agent Dokümantasyonu →](agent/README.md)
-
-#### Seçenek 2: Full Interface (Her Sunucuda)
-
-- Her sunucuda full web interface
-- Daha fazla resource kullanımı
-- Her sunucudan yönetim imkanı
-
-### Mimari (Agent Kullanarak - Önerilen)
-
-```
-┌─────────────────────────┐
-│   Central Server        │
-│   ┌─────────────────┐   │
-│   │ Web Interface   │   │◀──── Yönetim (Tarayıcı)
-│   └─────────────────┘   │
-│   ┌─────────────────┐   │
-│   │  MySQL Database │   │
-│   └─────────────────┘   │
-└─────────────────────────┘
-            ▲
-            │ MySQL (3306)
-            │
-  ┌─────────┼─────────┐
-  │         │         │
-  │         │         │
-┌─┴──┐    ┌─┴──┐    ┌─┴──┐
-│Web │    │Mail│    │DB  │   Yan Sunucular
-│Srv │    │Srv │    │Srv │   (Sadece Agent)
-├────┤    ├────┤    ├────┤
-│f2b │    │f2b │    │f2b │   fail2ban running
-│    │    │    │    │    │
-│agt │    │agt │    │agt │   agent.php (cron)
-└────┘    └────┘    └────┘
-```
-
-**Avantajlar:**
-
-- ✅ Yan sunucularda web server gerekmez
-- ✅ Minimal kurulum (3 dosya)
-- ✅ Düşük resource kullanımı
-- ✅ Kolay yönetim
-
-### Özellikler
-
-✅ **Merkezi Ban Yönetimi**: Tüm sunuculardaki banları tek yerden görüntüle
-✅ **Global Ban List**: Bir IP'yi tüm sunucularda otomatik banla
-✅ **Audit Log**: Tüm ban/unban işlemlerini takip et
-✅ **İstatistikler**: Server bazlı veya global istatistikler
-✅ **Bağımsız Çalışma**: Her sunucu kendi fail2ban'ını bağımsız çalıştırır
-
-### 1. Merkezi MySQL Sunucusu Kurulumu
+**⚠️ CRITICAL:** This application uses **non-executable JSON** configuration to prevent RCE vulnerabilities.
 
 ```bash
-# MySQL'e root olarak giriş
-mysql -u root -p
+# 1. Copy example config
+cp config.example.json config.json
 
-# Veritabanı ve kullanıcı oluştur
-CREATE DATABASE fail2ban_central CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'fail2ban_user'@'%' IDENTIFIED BY 'güçlü_bir_şifre';
-GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'%';
-FLUSH PRIVILEGES;
-EXIT;
+# 2. Generate password hash
+php -r "echo password_hash('your_password', PASSWORD_DEFAULT) . PHP_EOL;"
 
-# Şema dosyasını import et
-mysql -u fail2ban_user -p fail2ban_central < database.sql
+# 3. Edit config.json
+nano config.json
 ```
 
-#### MySQL Uzaktan Erişim
+### Configuration Structure
 
-```bash
-# /etc/mysql/mysql.conf.d/mysqld.cnf düzenle
-sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
-
-# bind-address satırını değiştir:
-bind-address = 0.0.0.0
-
-# MySQL'i yeniden başlat
-sudo systemctl restart mysql
-
-# Firewall'da 3306 portunu aç
-sudo ufw allow 3306/tcp
+```json
+{
+  "environment": "production",
+  "title": "Fail2Ban Dashboard",
+  "server": {
+    "name": "my-server",
+    "ip": "127.0.0.1"
+  },
+  "database": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 3306,
+    "name": "fail2ban_central",
+    "username": "fail2ban_user",
+    "password": "your_secure_password"
+  },
+  "authentication": {
+    "users": [
+      {
+        "username": "admin",
+        "password_hash": "$2y$10$..."
+      }
+    ]
+  },
+  "fail2ban": {
+    "socket": "/var/run/fail2ban/fail2ban.sock",
+    "use_socket_check": false,
+    "usedns": false,
+    "noempt": true,
+    "jainfo": true
+  },
+  "security": {
+    "rate_limit": {
+      "max_attempts": 5,
+      "lockout_time": 900,
+      "window": 1800
+    },
+    "session": {
+      "timeout": 1800,
+      "regeneration_interval": 600
+    }
+  }
+}
 ```
 
-### 2. Yan Sunucularda Agent Kurulumu (Önerilen)
+### Key Settings
 
-**Çok daha basit ve hafif!**
+**Environment:**
+- `development`: Shows errors for debugging
+- `production`: Logs errors to `/var/log/fail2ban_web_errors.log`
+
+**Security Settings:**
+- `rate_limit.max_attempts`: Failed login attempts before lockout (default: 5)
+- `rate_limit.lockout_time`: Lockout duration in seconds (default: 900 = 15 min)
+- `session.timeout`: Inactivity timeout in seconds (default: 1800 = 30 min)
+- `session.regeneration_interval`: Session ID regeneration interval (default: 600 = 10 min)
+
+**Fail2ban Settings:**
+- `use_socket_check`: Set to `false` to bypass open_basedir restrictions
+- `usedns`: Disable for better performance (recommended: `false`)
+- `noempt`: Hide empty jails (recommended: `true`)
+
+## 🖥️ Multi-Server Setup
+
+Manage multiple independent fail2ban servers from a centralized web interface with MySQL database.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────┐
+│     Central Server                   │
+│  ┌────────────────────────────────┐  │
+│  │   Web Interface (control.php)  │  │ ◄──── Management (Browser)
+│  └────────────────────────────────┘  │
+│  ┌────────────────────────────────┐  │
+│  │      MySQL Database            │  │
+│  └────────────────────────────────┘  │
+└─────────────────────────────────────┘
+              ▲
+              │ HTTP/HTTPS (API)
+              │
+   ┌──────────┼──────────┐
+   │          │          │
+┌──┴───┐  ┌──┴───┐  ┌──┴───┐
+│Web-1 │  │Mail-1│  │ DB-1 │   Remote Servers
+├──────┤  ├──────┤  ├──────┤
+│ f2b  │  │ f2b  │  │ f2b  │   fail2ban running
+│ bash │  │ bash │  │ bash │   bash-agent (cron)
+│ agt  │  │ agt  │  │ agt  │
+└──────┘  └──────┘  └──────┘
+```
+
+### Two Agent Options
+
+#### Option 1: Bash Agent (RECOMMENDED)
+
+**Advantages:**
+- ✅ No PHP required on remote servers
+- ✅ HTTP/HTTPS communication only (port 80/443)
+- ✅ Firewall-friendly (no MySQL port exposure)
+- ✅ Minimal dependencies (bash, curl, fail2ban-client)
+- ✅ Per-server unique API keys
+- ✅ Works through reverse proxies
+- ✅ Bidirectional sync (upload + download global bans)
+
+**Installation:**
 
 ```bash
-# 1. Agent dosyalarını kopyala
-cd /path/to/fail2ban/
-sudo cp -r agent/ /opt/fail2ban-agent/
-
-# 2. Kurulum scriptini çalıştır
-cd /opt/fail2ban-agent/
+# On remote server
+cd agent-bash/
 sudo ./install.sh
 
-# 3. Config düzenle (her sunucuda farklı server_name!)
-sudo nano /opt/fail2ban-agent/agent.conf.php
+# Configure
+sudo nano /opt/fail2ban-agent-bash/agent.conf.sh
+# Set: SERVER_NAME, SERVER_IP, SYNC_URL, API_KEY
 
-# 4. Test et
+# Test
+/opt/fail2ban-agent-bash/agent.sh --test
+
+# Apply global bans
+/opt/fail2ban-agent-bash/agent.sh --apply-global
+
+# Setup cron
+sudo crontab -e
+# */5 * * * * /opt/fail2ban-agent-bash/agent.sh >> /var/log/fail2ban_agent.log 2>&1
+# */10 * * * * /opt/fail2ban-agent-bash/agent.sh --apply-global >> /var/log/fail2ban_agent.log 2>&1
+```
+
+[Full Bash Agent Documentation →](agent-bash/README.md)
+
+#### Option 2: PHP Agent (Legacy)
+
+**Use when:**
+- Direct database access is required
+- PHP is already installed on all servers
+- Private network environment
+
+**Installation:**
+
+```bash
+# On remote server
+cd agent/
+sudo ./install.sh
+
+# Configure
+sudo nano /opt/fail2ban-agent/agent.conf.php
+# Set database credentials
+
+# Test
 php /opt/fail2ban-agent/agent.php --test
 
-# 5. Cron ekle
+# Setup cron
 sudo crontab -e
 # */5 * * * * /usr/bin/php /opt/fail2ban-agent/agent.php >> /var/log/fail2ban_agent.log 2>&1
 ```
 
-**Gereksinimler (Agent için):**
+[Full PHP Agent Documentation →](agent/README.md)
 
-- PHP CLI (php-cli)
-- PHP MySQL extension (php-mysql)
-- fail2ban kurulu
-- Web server GEREKMİYOR!
+### Central Server Setup
 
-Detaylı agent dokümantasyonu: [agent/README.md](agent/README.md)
-
----
-
-### 2b. Alternatif: Full Interface (Her Sunucuda)
-
-Eğer her sunucuda web interface istiyorsanız:
+#### 1. Setup MySQL Database
 
 ```bash
-# Web dizinine kopyala
-sudo cp -r fail2ban/ /var/www/html/fail2ban/
-sudo chown -R www-data:www-data /var/www/html/fail2ban/
-cd /var/www/html/fail2ban/
+# Connect to MySQL
+mysql -u root -p
+
+# Create database and user
+CREATE DATABASE fail2ban_central CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'fail2ban_user'@'%' IDENTIFIED BY 'strong_password_here';
+GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'%';
+FLUSH PRIVILEGES;
+EXIT;
+
+# Import schema
+mysql -u fail2ban_user -p fail2ban_central < 001_database.sql
 ```
 
-#### Adım 2: Config Ayarları
+#### 2. Enable Remote Access
 
 ```bash
-# Config dosyasını oluştur
-cp config.example.php config.inc.php
-nano config.inc.php
+# Edit MySQL config
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# Change bind-address
+bind-address = 0.0.0.0
+
+# Restart MySQL
+sudo systemctl restart mysql
+
+# Open firewall (if needed)
+sudo ufw allow 3306/tcp
 ```
 
-**ÖNEMLI:** Her sunucuda farklı `server_name` kullanın!
-
-```php
-// Server identification (HER SUNUCUDA FARKLI OLMALI)
-$config['server_name'] = 'web-server-1';  // web-server-1, mail-server-1, db-server-1 ...
-$config['server_ip'] = '192.168.1.10';    // Bu sunucunun IP'si
-
-// Merkezi database'i aktif et
-$config['use_central_db'] = true;
-
-// Database bağlantı bilgileri (TÜM SUNUCULARDA AYNI)
-$db_config = array(
-    'host' => '192.168.1.100',         // MySQL sunucusunun IP'si
-    'port' => 3306,
-    'database' => 'fail2ban_central',
-    'username' => 'fail2ban_user',
-    'password' => 'güçlü_bir_şifre',
-    'charset' => 'utf8mb4'
-);
-```
-
-**UYARI:**
-
-- `$db_config` değişkeni **mutlaka** `config.inc.php` içinde tanımlanmalı
-- `$config['use_central_db'] = false` ise sync.php çalışmaz (sadece local mod)
-- Her sunucunun `server_name`'i benzersiz (unique) olmalı
-
-#### Adım 3: PHP MySQL Extension
+#### 3. Configure Web Interface
 
 ```bash
-sudo apt-get install php-mysql
-sudo systemctl restart apache2  # veya php-fpm
+# Edit config.json
+nano config.json
 ```
 
-#### Adım 4: Sync Testi
+```json
+{
+  "database": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 3306,
+    "name": "fail2ban_central",
+    "username": "fail2ban_user",
+    "password": "strong_password_here"
+  }
+}
+```
+
+#### 4. Register Remote Servers
+
+1. Navigate to `control.php` in your browser
+2. Click "Register New Server"
+3. Enter server name, IP, and description
+4. System auto-generates 64-character API key
+5. Copy API key to remote server's `agent.conf.sh`
+6. Server appears in multi-server dashboard
+
+### Features
+
+✅ **Centralized Dashboard**: View all servers and bans in one place
+✅ **API Key Management**: Generate, regenerate, and revoke keys via web interface
+✅ **Global Ban List**: Ban IPs across all servers simultaneously
+✅ **Bidirectional Sync**: Upload local bans and download global bans
+✅ **Audit Logging**: Track all ban/unban actions with timestamps
+✅ **Statistics**: Server-based and global analytics
+✅ **Independent Operation**: Each server runs its own fail2ban instance
+
+## 🔒 Security
+
+### Implemented Protections
+
+✅ **JSON Configuration**: Non-executable format prevents RCE
+✅ **CSRF Protection**: Token-based validation on all forms
+✅ **XSS Protection**: Output encoding with htmlspecialchars
+✅ **Command Injection**: Input validation and escapeshellarg()
+✅ **Password Hashing**: Bcrypt with salt
+✅ **Session Security**:
+  - 30-minute inactivity timeout
+  - Automatic ID regeneration every 10 minutes
+  - Session fixation prevention
+✅ **Brute-Force Protection**:
+  - 5 failed attempts → 15-minute lockout
+  - IP-based and username-based tracking
+✅ **Remember Me**: Secure token-based persistent login (30 days)
+✅ **Rate Limiting**: Configurable login attempt limits
+✅ **Error Logging**: Environment-based error handling
+✅ **File Protection**: .htaccess blocks config and include files
+
+### Production Security Checklist
+
+**Mandatory:**
+
+- [ ] Use HTTPS (Let's Encrypt free)
+- [ ] Set `"environment": "production"` in config.json
+- [ ] Use bcrypt password hashes (never plaintext)
+- [ ] Verify .htaccess is protecting config files
+- [ ] Test fail2ban socket permissions
+- [ ] Review and adjust rate limiting settings
+- [ ] Configure session timeout appropriately
+
+**Recommended:**
+
+- [ ] Add IP restrictions (.htaccess or firewall)
+- [ ] Use strong database passwords
+- [ ] Enable MySQL SSL/TLS for remote connections
+- [ ] Use VPN for server-to-server communication
+- [ ] Limit MySQL user privileges to minimum required
+- [ ] Monitor error logs regularly
+- [ ] Keep PHP and dependencies updated
+
+### MySQL Security
 
 ```bash
-# Manuel sync testi
-php sync.php
-
-# Çıktıda hata olmamalı
-# Örnek çıktı:
-# [2025-01-15 10:30:00] Starting sync for server: web-server-1 (ID: 1)
-# [2025-01-15 10:30:01] Syncing local bans to database...
-# [2025-01-15 10:30:02] Sync completed successfully
-```
-
-#### Adım 5: Otomatik Sync (Cron)
-
-```bash
-# Crontab düzenle
-sudo crontab -e
-
-# Her 5 dakikada bir local bans'ları database'e sync et
-*/5 * * * * /usr/bin/php /var/www/html/fail2ban/sync.php >> /var/log/fail2ban_sync.log 2>&1
-
-# Her 10 dakikada bir global banları uygula
-*/10 * * * * /usr/bin/php /var/www/html/fail2ban/sync.php --apply-global >> /var/log/fail2ban_sync.log 2>&1
-```
-
-### 3. Kullanım Senaryoları
-
-#### Senaryo 1: Sadece Görüntüleme
-
-Merkezi veritabanını sadece raporlama için kullan. Her sunucu kendi fail2ban'ını yönetir, sadece veriler database'e aktarılır.
-
-```php
-$config['use_central_db'] = true;
-$config['db_mode'] = 'readonly';  // Sadece okuma
-```
-
-#### Senaryo 2: Global Ban Yönetimi
-
-Bir IP'yi tüm sunucularda banlamak için:
-
-**SQL ile manuel:**
-
-```sql
-INSERT INTO global_bans (ip_address, reason, banned_by, permanent)
-VALUES ('123.45.67.89', 'Brute force attack', 'admin', 0);
-```
-
-**PHP ile (db.inc.php fonksiyonu kullanarak):**
-
-```php
-db_add_global_ban('123.45.67.89', 'Brute force attack', 'admin', false);
-```
-
-Sync script otomatik olarak bu IP'yi tüm sunucularda banlayacak.
-
-#### Senaryo 3: Merkezi Dashboard
-
-Tüm sunucuların verilerini database'den çek ve merkezi dashboard oluştur:
-
-```php
-require_once('db.inc.php');
-
-// Tüm sunucuları getir
-$all_servers = db_get_servers();
-
-// Tüm banned IP'leri getir
-$all_banned_ips = db_get_banned_ips();
-
-// Belirli bir sunucunun banned IP'leri
-$server1_bans = db_get_banned_ips($server_id);
-
-// İstatistikler
-$stats = db_get_statistics(null, 30); // Son 30 gün
-```
-
-### 4. Veritabanı Tabloları
-
-| Tablo         | Açıklama                                            |
-| ------------- | --------------------------------------------------- |
-| `servers`     | Her fail2ban sunucusunu takip eder                  |
-| `jails`       | Her sunucudaki jail'leri takip eder                 |
-| `banned_ips`  | Tüm sunuculardaki banned IP'leri saklar             |
-| `global_bans` | Tüm sunuculara uygulanması gereken IP'ler           |
-| `audit_log`   | Tüm ban/unban işlemlerinin log'u                    |
-| `statistics`  | Günlük istatistikler                                |
-| `users`       | Web interface kullanıcıları (gelecek sürümler için) |
-
-Detaylı şema için `database.sql` dosyasına bakın.
-
-### 5. Manuel Sync Komutları
-
-```bash
-# Tüm banned IP'leri database'e gönder
-php sync.php
-
-# Global ban'ları local fail2ban'a uygula
-php sync.php --apply-global
-
-# Belirli bir sunucu için
-php sync.php --server=mail-server-1
-
-# Yardım
-php sync.php --help
-```
-
----
-
-## 🔒 Güvenlik
-
-### Mevcut Korumalar
-
-✅ CSRF koruması (token-based)
-✅ XSS koruması (htmlspecialchars)
-✅ Command injection koruması (escapeshellarg)
-✅ Bcrypt password hashing
-✅ Session regeneration
-✅ Input validation
-✅ Audit logging (çoklu sunucu modu)
-
-### Öneriler
-
-**Zorunlu (Production için):**
-
-- ✅ HTTPS kullanın (Let's Encrypt ücretsiz)
-- ✅ Güçlü şifreler kullanın (bcrypt hash)
-- ✅ `$config['environment'] = 'production'` yapın
-- ✅ `.htaccess` ile hassas dosyaları koruyun
-
-**Opsiyonel (İleri Seviye):**
-
-- IP kısıtlaması yapın (.htaccess veya firewall)
-- Database kullanıcısına minimum yetki verin
-- MySQL bağlantılarını SSL/TLS ile şifreleyin
-- VPN kullanın (sunucular arası iletişim için)
-- Firewall'da sadece gerekli portları açın
-
-### MySQL Güvenlik
-
-```bash
-# SSL/TLS bağlantı zorla
+# Enforce SSL/TLS connections
 GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'%' REQUIRE SSL;
 
-# Specific IP'den bağlantı izni
+# Restrict to specific IP range
 CREATE USER 'fail2ban_user'@'192.168.1.%' IDENTIFIED BY 'password';
 GRANT ALL PRIVILEGES ON fail2ban_central.* TO 'fail2ban_user'@'192.168.1.%';
 ```
 
----
+## 📈 Performance
 
-## 📈 Performans
+### Caching System
 
-### Cache Stratejisi
+- **APCu**: In-memory cache (fastest, recommended)
+- **File Cache**: Fallback when APCu unavailable
+- **TTL**: 30 seconds for jail data
+- **GeoIP**: Static array cache per request
+- **Session-based keys**: Security through isolation
 
-- **APCu**: Memory cache (en hızlı)
-- **File Cache**: Fallback (APCu yoksa)
-- **TTL**: 30 saniye (jail data için)
-- **GeoIP**: Static array cache (request süresince)
+### Optimizations
 
-### Optimizasyonlar
+- DNS lookups disabled by default
+- sleep() delays removed
+- Database queries optimized with proper indexing
+- Batch operations for multi-server sync
+- Minimal resource usage
 
-- DNS lookups devre dışı (`$f2b['usedns'] = false`)
-- sleep() çağrıları kaldırıldı
-- Database query'leri optimize edildi
-- Index'ler eklendi (database.sql)
+### Expected Performance
 
-### Beklenen Performans
+- **First load** (cache miss): 1-3 seconds
+- **Cached load**: < 0.5 seconds
+- **With APCu**: Near-instant response
+- **Dashboard refresh**: Automatic cache invalidation
 
-- **İlk yükleme** (cache miss): 1-3 saniye
-- **Cache hit** ile yükleme: < 0.5 saniye
-- **APCu** ile: Neredeyse anında
-
-### Cache Kontrol
-
-```bash
-# APCu kurulu mu?
-php -m | grep apcu
-
-# Cache temizle (web interface'den)
-# "Refresh" butonuna tıkla
-
-# Manuel cache temizle
-php -r "if(function_exists('apcu_clear_cache')) apcu_clear_cache();"
-```
-
----
-
-## 🐛 Sorun Giderme
-
-### Socket Permission Denied
-
-**Sorun:** `Permission denied to socket: /var/run/fail2ban/fail2ban.sock`
-
-**Çözüm:**
+### Enable APCu (Recommended)
 
 ```bash
-# Seçenek 1: Full erişim (en kolay)
-sudo chmod 777 /var/run/fail2ban/fail2ban.sock
-
-# Seçenek 2: Grup izni (daha güvenli)
-sudo usermod -a -G fail2ban www-data
-sudo chmod 660 /var/run/fail2ban/fail2ban.sock
-sudo systemctl restart apache2
-
-# Seçenek 3: Socket bypass (config.inc.php)
-$f2b['use_socket_check'] = false;
-```
-
-### Database Connection Failed
-
-**Sorun:** `Database connection failed`
-
-**Kontroller:**
-
-```bash
-# MySQL'e bağlanabildiğinizi test edin
-mysql -h 192.168.1.100 -u fail2ban_user -p fail2ban_central
-
-# Firewall kontrolü
-telnet 192.168.1.100 3306
-
-# MySQL loglarını kontrol et
-sudo tail -f /var/log/mysql/error.log
-
-# Kullanıcı izinlerini kontrol et
-mysql -u root -p
-SHOW GRANTS FOR 'fail2ban_user'@'%';
-```
-
-### Sync Script Hataları
-
-**Sorun:** Sync script çalışmıyor veya hata veriyor
-
-**Debug:**
-
-```bash
-# Manuel çalıştır ve hataları gör
-php sync.php
-
-# PHP error log kontrolü
-tail -f /var/log/apache2/error.log
-
-# Sync log kontrolü
-tail -f /var/log/fail2ban_sync.log
-
-# Database bağlantısını test et
-php -r "
-require_once('config.inc.php');
-require_once('db.inc.php');
-\$db = get_db_connection();
-echo \$db ? 'DB OK' : 'DB FAIL';
-"
-```
-
-### Slow Page Load
-
-**Sorun:** Sayfa yüklenmesi çok yavaş
-
-**Kontroller:**
-
-```bash
-# Cache çalışıyor mu?
-php -r "
-require_once('cache.inc.php');
-cache_set('test', 'value', 60);
-echo cache_get('test') === 'value' ? 'Cache OK' : 'Cache FAIL';
-"
-
-# DNS lookup'ı kapat (config.inc.php)
-$f2b['usedns'] = false;
-
-# APCu kur
 sudo apt-get install php-apcu
-sudo systemctl restart apache2
+sudo systemctl restart apache2  # or php-fpm
+
+# Verify
+php -m | grep apcu
 ```
 
-### GeoIP Warnings
+## 🔧 Maintenance
 
-**Sorun:** Deprecation warnings from GeoIP2
+### GeoIP Database Updates
 
-**Çözüm:** Warnings zaten suppress edilmiş (`@` operator). Eğer hala görüyorsan:
+Automatic updater script for MaxMind GeoLite2 databases:
 
 ```bash
-# GeoIP'yi devre dışı bırak (fail2ban.php'de comment out)
-# if (file_exists('vendor/autoload.php')) {
-#   @require_once 'vendor/autoload.php';
-# }
+# Set license key (get free key from maxmind.com)
+export MAXMIND_LICENSE_KEY="your_license_key"
 
-# Veya GeoIP2 güncellemesi
-composer update
+# Manual update
+php update_geoip.php
+
+# Setup automatic daily updates (8:00 AM)
+sudo crontab -e
+# 0 8 * * * /usr/bin/php /var/www/html/fail2ban/update_geoip.php >> /var/log/geoip_update.log 2>&1
 ```
 
----
+Features:
+- Downloads GeoLite2-ASN, GeoLite2-City, GeoLite2-Country
+- Creates timestamped backups
+- Rotates old backups (keeps 3 most recent)
+- Comprehensive logging
+- Error handling with proper exit codes
 
-## 🔧 Bakım
-
-### Log Yönetimi
+### Log Management
 
 ```bash
-# Sync loglarını kontrol et
-tail -f /var/log/fail2ban_sync.log
+# View sync logs
+tail -f /var/log/fail2ban_agent.log
 
-# Log rotation (logrotate)
+# Setup log rotation
 sudo nano /etc/logrotate.d/fail2ban-sync
-
-# İçerik:
-# /var/log/fail2ban_sync.log {
-#     weekly
-#     rotate 4
-#     compress
-#     missingok
-#     notifempty
-# }
 ```
 
-### Database Bakımı
+```
+/var/log/fail2ban_agent.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+}
+```
 
-**Eski kayıtları temizle:**
+### Database Maintenance
 
 ```sql
--- 90 günden eski inactive ban kayıtlarını sil
+-- Clean old inactive bans (90+ days)
 DELETE FROM banned_ips
 WHERE is_active = 0 AND unban_time < DATE_SUB(NOW(), INTERVAL 90 DAY);
 
--- Eski audit log kayıtlarını sil (180 gün)
+-- Clean old audit logs (180+ days)
 DELETE FROM audit_log
 WHERE action_time < DATE_SUB(NOW(), INTERVAL 180 DAY);
 
--- Tabloları optimize et
+-- Optimize tables
 OPTIMIZE TABLE banned_ips;
 OPTIMIZE TABLE audit_log;
-```
 
-**Database boyut kontrolü:**
-
-```sql
+-- Check database size
 SELECT
     table_name,
     ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)'
@@ -727,110 +565,209 @@ WHERE table_schema = 'fail2ban_central'
 ORDER BY (data_length + index_length) DESC;
 ```
 
-### Backup
+### Backup Strategy
 
 ```bash
-# Manuel backup
+# Manual database backup
 mysqldump -u fail2ban_user -p fail2ban_central | gzip > fail2ban_backup_$(date +%Y%m%d).sql.gz
 
-# Otomatik günlük backup (cron)
+# Automated daily backup (cron at 2:00 AM)
 0 2 * * * mysqldump -u fail2ban_user -p'password' fail2ban_central | gzip > /backup/fail2ban_$(date +\%Y\%m\%d).sql.gz
 
-# Backup retention (7 gün)
+# Retention policy (keep 7 days)
 find /backup/fail2ban_*.sql.gz -mtime +7 -delete
 ```
 
-### MySQL Performance Tuning
+## 🐛 Troubleshooting
+
+### Socket Permission Denied
+
+**Problem:** `Permission denied to socket`
+
+**Solutions:**
 
 ```bash
-# Slow query log aktif et
-sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+# Option 1: Full access
+sudo chmod 777 /var/run/fail2ban/fail2ban.sock
 
-# Ekle:
-slow_query_log = 1
-long_query_time = 2
-slow_query_log_file = /var/log/mysql/slow.log
+# Option 2: Group permissions
+sudo usermod -a -G fail2ban www-data
+sudo chmod 660 /var/run/fail2ban/fail2ban.sock
+sudo systemctl restart apache2
 
-# Restart
-sudo systemctl restart mysql
-
-# Yavaş sorguları kontrol et
-sudo mysqldumpslow -t 10 /var/log/mysql/slow.log
+# Option 3: Bypass socket check
+# Set in config.json: "use_socket_check": false
 ```
 
-### Index Kontrolü
+### Database Connection Failed
 
-```sql
--- Eksik index'leri kontrol et
-SHOW INDEX FROM banned_ips;
+**Problem:** Cannot connect to MySQL
 
--- Kullanılmayan index'leri bul
-SELECT * FROM sys.schema_unused_indexes WHERE object_schema = 'fail2ban_central';
+**Debug steps:**
+
+```bash
+# Test connection
+mysql -h 192.168.1.100 -u fail2ban_user -p fail2ban_central
+
+# Check firewall
+telnet 192.168.1.100 3306
+
+# Check MySQL logs
+sudo tail -f /var/log/mysql/error.log
+
+# Verify user permissions
+mysql -u root -p
+SHOW GRANTS FOR 'fail2ban_user'@'%';
 ```
 
----
+### Slow Page Load
 
-## 📁 Dosya Yapısı
+**Problem:** Dashboard loads slowly
+
+**Solutions:**
+
+```bash
+# Check if cache is working
+php -r "
+require_once('cache.inc.php');
+cache_set('test', 'value', 60);
+echo cache_get('test') === 'value' ? 'Cache OK' : 'Cache FAIL';
+"
+
+# Install APCu
+sudo apt-get install php-apcu
+sudo systemctl restart apache2
+
+# Disable DNS lookups (config.json)
+# "usedns": false
+
+# Verify temp directory is writable
+ls -ld /tmp
+```
+
+### Agent Not Syncing
+
+**Problem:** Remote agent not syncing data
+
+**Debug bash agent:**
+
+```bash
+# Test configuration
+/opt/fail2ban-agent-bash/agent.sh --test
+
+# Manual sync with output
+/opt/fail2ban-agent-bash/agent.sh
+
+# Check logs
+tail -f /var/log/fail2ban_agent.log
+
+# Test HTTP endpoint
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key" \
+  -d '{"action":"ping"}' \
+  https://central.example.com/sync.php
+```
+
+## 📁 Architecture
+
+### File Structure
 
 ```
 fail2ban/
-├── index.php              # Login işleme
-├── login.php              # Login sayfası (Bootstrap 5 dark)
-├── fail2ban.php           # Ana dashboard
-├── logout.php             # Logout
-├── protected.php          # Örnek protected sayfa
-├── engine.inc.php         # Fail2ban işlemleri
-├── cache.inc.php          # Cache sistemi (APCu/File)
-├── csrf.inc.php           # CSRF koruması
-├── config.inc.php         # Konfigürasyon (gitignore)
-├── config.example.php     # Örnek config
-├── db.inc.php             # Database fonksiyonları
-├── sync.php               # Sync script (cron için)
-├── database.sql           # MySQL şeması
-├── README.md              # Bu dosya
-├── CLAUDE.md              # AI dokümantasyonu
-├── .gitignore             # Git ignore rules
-└── agent/                 # Lightweight agent (yan sunucular için)
-    ├── agent.php          # Agent script
-    ├── agent.conf.php     # Config (gitignore)
-    ├── agent.conf.example.php  # Örnek config
-    ├── install.sh         # Otomatik kurulum
-    └── README.md          # Agent dokümantasyonu
+├── index.php                # Entry point with authentication
+├── login.php                # Bootstrap 5 dark mode login page
+├── fail2ban.php             # Main dashboard (local server)
+├── control.php              # Multi-server management panel
+├── admin.php                # Configuration management panel
+├── logout.php               # Session cleanup
+├── protected.php            # Example protected page
+├── engine.inc.php           # Fail2ban command abstraction
+├── cache.inc.php            # Hybrid caching (APCu/File)
+├── csrf.inc.php             # CSRF protection library
+├── session.inc.php          # Session timeout & security
+├── ratelimit.inc.php        # Brute-force protection
+├── config.inc.php           # Configuration loader (READ-ONLY)
+├── config.json              # JSON configuration (gitignored)
+├── config.example.json      # Configuration template
+├── db.inc.php               # MySQL database functions
+├── sync.php                 # Sync script (HTTP API + CLI)
+├── update_geoip.php         # GeoIP database updater
+├── 001_database.sql         # MySQL schema
+├── README.md                # This file
+├── CLAUDE.md                # AI assistant documentation
+├── .htaccess                # Apache security rules
+├── .gitignore               # Git ignore rules
+├── agent/                   # PHP agent (legacy)
+│   ├── agent.php
+│   ├── agent.conf.php
+│   ├── agent.conf.example.php
+│   ├── install.sh
+│   └── README.md
+└── agent-bash/              # Bash agent (recommended)
+    ├── agent.sh
+    ├── agent.conf.sh
+    ├── agent.conf.example.sh
+    ├── install.sh
+    └── README.md
 ```
 
----
+### Database Schema
 
-## 🤝 Katkıda Bulunma
+| Table         | Purpose                                    |
+| ------------- | ------------------------------------------ |
+| `servers`     | Tracks all fail2ban servers with API keys |
+| `jails`       | Tracks jails across all servers            |
+| `banned_ips`  | Central repository of all banned IPs       |
+| `global_bans` | IPs to ban across all servers              |
+| `audit_log`   | Log of all ban/unban actions               |
+| `statistics`  | Aggregated daily statistics                |
+| `users`       | Web interface users (future feature)       |
 
-Katkılar memnuniyetle karşılanır! Lütfen pull request göndermeden önce:
+See `001_database.sql` for complete schema.
 
-1. Kodu test edin
-2. Güvenlik açığı kontrolü yapın
-3. Dokümantasyonu güncelleyin
+### Key Technologies
 
----
+- **Backend**: PHP 7.2+, MySQL 5.7+
+- **Frontend**: Bootstrap 5.3, Bootstrap Icons 1.11.0
+- **Security**: bcrypt, CSRF tokens, session management
+- **Performance**: APCu, file caching, query optimization
+- **GeoIP**: MaxMind GeoLite2 (optional)
+- **Communication**: HTTP API (JSON), MySQL protocol
 
-## 📄 Lisans
+## 🤝 Contributing
 
-MIT License - Detaylar için LICENSE dosyasına bakın.
+Contributions welcome! Before submitting a pull request:
 
----
+1. Test your code thoroughly
+2. Check for security vulnerabilities
+3. Update documentation
+4. Follow existing code style
+5. Add comments for complex logic
 
-## 🙏 Teşekkürler
+## 📄 License
+
+MIT License - See LICENSE file for details.
+
+## 🙏 Credits
 
 - [Bootstrap 5](https://getbootstrap.com/) - UI framework
 - [Bootstrap Icons](https://icons.getbootstrap.com/) - Icon set
 - [MaxMind GeoIP2](https://www.maxmind.com/) - IP geolocation
 - [Fail2ban](https://www.fail2ban.org/) - Intrusion prevention
 
----
-
-## 📞 Destek
+## 📞 Support
 
 - **Issues**: GitHub Issues
 - **Email**: <kerem@keremgok.com>
-- **Dokümantasyon**: CLAUDE.md (AI assistant için)
+- **Documentation**:
+  - README.md (this file)
+  - CLAUDE.md (AI assistant guide)
+  - agent-bash/README.md (bash agent docs)
+  - agent/README.md (PHP agent docs)
 
 ---
 
-**Not**: Bu proje bağımsız bir web interface'dir ve resmi fail2ban projesi ile doğrudan ilişkili değildir.
+**Note**: This is an independent web interface and is not officially affiliated with the fail2ban project.
+
+**Security Notice**: Always use HTTPS in production. Never expose this interface to the public internet without proper security measures (IP restrictions, VPN, firewall rules).
