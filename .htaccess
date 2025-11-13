@@ -36,6 +36,11 @@
     Require all denied
 </FilesMatch>
 
+# Deny access to timestamped backup files (e.g., config.json.backup.20251113105121)
+<FilesMatch "\.backup\.\d+$">
+    Require all denied
+</FilesMatch>
+
 # Deny access to log files
 <FilesMatch "\.log$">
     Require all denied
