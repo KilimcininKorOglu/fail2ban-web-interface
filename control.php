@@ -512,8 +512,8 @@ $total_global_bans = count($global_bans);
                     <?php endforeach; ?>
 
                     <!-- Add Server Card -->
-                    <div class="col-md-4 mb-3">
-                        <div class="card server-card" style="border: 2px dashed rgba(102, 126, 234, 0.5);">
+                    <div class="col-12 mb-4">
+                        <div class="card" style="border: 2px dashed rgba(102, 126, 234, 0.5);">
                             <div class="card-header bg-primary bg-opacity-10">
                                 <strong><i class="bi bi-plus-circle"></i> Register New Server</strong>
                             </div>
@@ -522,33 +522,40 @@ $total_global_bans = count($global_bans);
                                     <?php echo csrf_token_field(); ?>
                                     <input type="hidden" name="action" value="add_server">
 
-                                    <div class="mb-3">
-                                        <label for="server_name" class="form-label">Server Name *</label>
-                                        <input type="text" class="form-control" id="server_name" name="server_name"
-                                               placeholder="web-server-1" pattern="[a-zA-Z0-9\-_\.]+" required>
-                                        <div class="form-text">Alphanumeric, hyphens, underscores, dots only</div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="server_name" class="form-label">Server Name *</label>
+                                            <input type="text" class="form-control" id="server_name" name="server_name"
+                                                   placeholder="web-server-1" pattern="[a-zA-Z0-9\-_\.]+" required>
+                                            <div class="form-text">Alphanumeric, hyphens, underscores, dots only</div>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label for="server_ip" class="form-label">Server IP *</label>
+                                            <input type="text" class="form-control" id="server_ip" name="server_ip"
+                                                   placeholder="192.168.1.10" required>
+                                            <div class="form-text">IPv4 or IPv6 address</div>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label for="description" class="form-label">Description</label>
+                                            <input type="text" class="form-control" id="description" name="description"
+                                                   placeholder="Production web server">
+                                            <div class="form-text">Optional server description</div>
+                                        </div>
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label for="server_ip" class="form-label">Server IP *</label>
-                                        <input type="text" class="form-control" id="server_ip" name="server_ip"
-                                               placeholder="192.168.1.10" required>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="bi bi-plus-circle"></i> Register Server
+                                            </button>
+                                            <small class="text-muted ms-3">
+                                                <i class="bi bi-info-circle"></i> API key will be automatically generated
+                                            </small>
+                                        </div>
                                     </div>
-
-                                    <div class="mb-3">
-                                        <label for="description" class="form-label">Description</label>
-                                        <textarea class="form-control" id="description" name="description"
-                                                  rows="2" placeholder="Production web server"></textarea>
-                                    </div>
-
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="bi bi-plus-circle"></i> Register Server
-                                    </button>
                                 </form>
-                                <hr>
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle"></i> API key will be automatically generated
-                                </small>
                             </div>
                         </div>
                     </div>
