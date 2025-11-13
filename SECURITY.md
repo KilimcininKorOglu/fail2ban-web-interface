@@ -116,9 +116,21 @@ Created `session.inc.php` with the following security features:
    - `session_destroy_safely()` function ensures complete cleanup
    - Clears all session data
    - Removes session cookies
+   - Removes remember me cookies
    - Calls `session_destroy()`
 
-4. **Helper Functions:**
+4. **Remember Me Functionality:**
+
+   - Secure 30-day persistent login via cookies
+   - Random 64-character hex token generation
+   - Token stored as SHA-256 hash for security
+   - Automatic session restoration on revisit
+   - HttpOnly and SameSite=Strict cookie flags
+   - Automatic HTTPS detection for Secure flag
+   - Token validation and user verification
+   - `check_remember_me()` - Validates token and restores session
+
+5. **Helper Functions:**
    - `check_session_timeout($timeout)` - Validates and updates session state
    - `require_authentication($timeout, $login_page)` - Enforces authentication with redirect
    - `get_session_remaining_time($timeout)` - Returns remaining session time

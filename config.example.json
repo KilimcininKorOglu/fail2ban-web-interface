@@ -1,7 +1,7 @@
 {
   "_comment": "Fail2Ban Web Interface Configuration - Copy to config.json and customize",
   "environment": "development",
-  "title": "Fail2Ban Dashboard",
+  "title": "Hermes Fail2Ban Dashboard",
   "server": {
     "name": "my-server",
     "ip": "127.0.0.1"

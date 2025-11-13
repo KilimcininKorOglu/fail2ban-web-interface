@@ -46,7 +46,7 @@ if ($config['environment'] === 'production') {
 }
 
 // Application title
-$config['title'] = $json_config['title'] ?? 'Fail2Ban Dashboard';
+$config['title'] = $json_config['title'] ?? 'Hermes Fail2Ban Dashboard';
 
 // Server identification
 $config['server_name'] = $json_config['server']['name'] ?? 'my-server';
